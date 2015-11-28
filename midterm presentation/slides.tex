@@ -1,0 +1,531 @@
+\documentclass[10pt, compress, xcolor={usenames,dvipsnames}]{beamer}
+\usepackage[utf8x]{inputenc}
+
+%%% Theme and style
+\usetheme{metropolis}
+\metroset{progressbar=frametitle}
+\metroset{numbering=fraction}
+
+%%% Packages %%%
+
+% Use T1 and a modern font family for better support of accents, etc.
+\usepackage[T1]{fontenc}
+\usepackage{palatino}  % Palatino
+
+% Language support
+\usepackage[english]{babel}
+
+% Support for easily changing the enumerator in
+% enumerate-environments.
+\usepackage{enumerate}
+
+% Support for importing images
+%\usepackage{graphicx}
+
+% Use hyperlinks
+\usepackage{hyperref}
+
+% Don't load xcolors package in beamer: use document class option
+% instead...
+%\usepackage[usenames,dvipsnames]{xcolor}
+
+% Use colors in tables
+%\usepackage[pdftex]{colortbl}
+
+% A nice monospace font for listings, etc.
+\usepackage[scaled]{beramono}
+%\usepackage{inconsolata}
+
+% Using TikZ for diagrams
+\usepackage{tikz}
+\usetikzlibrary{shapes,mindmap}
+%\usetikzlibrary{er,mindmap,calc,intersections,shapes,arrows,fit,matrix,positioning,decorations.pathmorphing,topaths,trees,automata}
+\usepackage{tikz-cd} % for CM-arrow tips.
+
+% Don't use externalize with gradients!!!
+%\usetikzlibrary{external,arrows,fit,matrix,positioning}
+%\tikzexternalize % Activate externalizing TikZ graphics.
+
+\usepackage{pifont} % for ding
+\usepackage[inline]{enumitem}
+\usepackage{xspace}
+\usepackage{listings}
+
+% Scala listings.  Use colored Scala style by default.
+\usepackage{lstscala}
+\lstnewenvironment{lstscalasmall}{%
+  \lstset{style=scala-color,basicstyle=\scriptsize\tt}}{}
+
+\colorlet{ImportantCode}{ForestGreen}
+\colorlet{ImportantCode2}{RubineRed}
+
+\lstset{style=scala-color}
+
+\lstnewenvironment{C}
+  {\lstset{
+    language=C,
+    flexiblecolumns=false,
+    mathescape=false,
+    moredelim=**[is][\color{ImportantCode}]{@}{@},
+    moredelim=**[is][\color{ImportantCode2}]{§}{§},
+    basicstyle=\small\color{blue!30!darkgray}\tt,
+commentstyle=\color{CadetBlue}}}
+  {}
+\lstnewenvironment{Scala}
+  {\lstset{
+    style=scala-color,
+    flexiblecolumns=false,
+    mathescape=false,
+    basicstyle=\small\color{blue!30!darkgray}\tt}}
+  {}
+
+
+%%%% Custom macros %%%%
+\newif\ifcompileTreeSlides
+%\compileTreeSlidesfalse
+\compileTreeSlidestrue
+
+\newcommand{\SmallArrow}{\ding{228}}
+\newcommand{\BigArrow}{$\longrightarrow$\xspace}
+\newcommand{\Triangle}{$\triangleright$\xspace}
+\renewcommand{\emph}[1]{\alert{#1}}
+\newcommand{\light}{\color{TealBlue}}
+\renewcommand{\hbar}{{\color{mLightBrown}\hrulefill}}
+
+% http://tex.stackexchange.com/a/56585/77356
+\tikzset{
+  invisible/.style={opacity=0},
+  visible on/.style={alt=#1{}{invisible}},
+  alt/.code args={<#1>#2#3}{%
+    \alt<#1>{\pgfkeysalso{#2}}{\pgfkeysalso{#3}} % \pgfkeysalso doesn't change the path
+  },
+}
+
+%%% Document info %%%
+
+\title{From Verified Functions to Safe C Code}
+
+\author{Marco Antognini}
+
+% To show the TOC at the beginning of each section, uncomment this:
+% \AtBeginSection[]
+% {
+%   \begin{frame}<beamer>{Outline}
+%     \tableofcontents[currentsection]
+%   \end{frame}
+% }
+
+% To show the TOC at the beginning of each subsection, uncomment this:
+% \AtBeginSubsection[]
+% {
+%   \begin{frame}<beamer>{Outline}
+%     \tableofcontents[currentsection,currentsubsection]
+%   \end{frame}
+% }
+
+
+% To uncover everything in a step-wise fashion, uncomment this:
+% \beamerdefaultoverlayspecification{<+->}
+
+
+\date{%
+  \small Fall 2015\\[2em]
+  \includegraphics[height=7mm]{img/epfl-logo}}
+
+
+%%% Start of the actual document %%%
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% No outline, too short a talk...
+% \begin{frame}{Outline}
+%   \tableofcontents
+%   % You might wish to add the option [pausesections]
+% \end{frame}
+
+\section{Motivation}
+
+\begin{frame}[fragile]{Motivation}
+
+  \begin{itemize}[label=\SmallArrow]
+
+    \item Software keeps getting more complex.
+    \item Hardware gets cheaper and more robust.
+    \item For some industry, development cost is high mostly because of
+      software verification process.
+    \item Failure can have disastrous impact on human lives or huge monetary
+      loss.
+
+  \end{itemize}
+
+  \vspace{1em}
+
+  \BigArrow We need tools to \emph{verify complex software}.
+
+\end{frame}
+
+\begin{frame}[fragile]{Leon?}
+
+  \begin{itemize}[label=\SmallArrow]
+
+    \item Leon offers tools to reduce this cost.
+    \item \emph{But!} It's JVM-based hence useless for \emph{very small
+      devices} \\
+      (e.g. pacemakers, spacecraft, \ldots)
+    \item Need {\light native} code.
+    \item That's why C-like languages are widely used in the industry.
+
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]{Verifier for C?}
+
+  \begin{itemize}[label=\SmallArrow]
+    \item Why not but low level, verbose and error prone.
+    \item Modern C++ or D might solve many issues from C\ldots
+    \item \ldots but no good verifiers exist.
+  \end{itemize}
+
+\end{frame}
+
+
+\section{val GenC = (CAST) Leon}
+
+\begin{frame}[fragile]{GenC}
+
+  \begin{itemize}[label=\Triangle]
+    \item Use Leon to {\light verify, repair and synthesis} code using high level
+      features of Scala*. \pause
+    \item Translate code into \emph{equivalent} C99 code. \pause
+    \item Compile it with your favourite C compiler for your destination
+      architecture. \pause
+    \item And run it {\light natively} on your hardware.
+  \end{itemize}
+
+\end{frame}
+
+\plain{\Huge Supported Features}
+
+% Short-cut for inline listings using "@" (must come after "\titlepage")
+\lstMakeShortInline[%
+  style=scala-color,%
+  flexiblecolumns=false,%
+  mathescape=false,%
+  basicstyle=\color{blue!30!darkgray}\tt]@
+
+% Short-cut for inline listings using "|" (must come after "\titlepage")
+\lstMakeShortInline[%
+  language=C,%
+  flexiblecolumns=false,%
+  mathescape=false,%
+  basicstyle=\color{blue!30!darkgray}\tt]|
+
+\begin{frame}[fragile]{Types}
+
+  @Int@ \BigArrow |int32_t| \hspace{3em} @Boolean@ \BigArrow |bool| \hspace{3em}
+  @Unit@ \BigArrow |void|
+
+  \pause
+  \vspace{1em}
+
+  @TupleN[T1, T2, ..., TN]@ is generated using some kind of templates. E.g.
+  @(Boolean, Int)@ is:
+
+  \begin{C}
+typedef struct __leon_tuple_bool_int32_t_t {
+  bool    @_1@;  // padding
+  int32_t @_2@;
+} __leon_tuple_bool_int32_t_t;
+  \end{C}
+
+  \pause
+  %\vspace{1em}
+
+  Similarly, @Array[T]@ is templatised. E.g. @Array[(Boolean, Int)]@ is:
+  \begin{C}
+typedef struct __leon_array___leon_tuple_bool_int32_t_t_t {
+  __leon_tuple_bool_int32_t_t§*§ @data@;   // not owning the memory
+  int32_t                      @length@;
+} __leon_array___leon_tuple_bool_int32_t_t_t;
+  \end{C}
+\end{frame}
+
+\begin{frame}[fragile]{More on Arrays}
+  Those arrays live on the \emph{stack} \BigArrow cannot return them.
+
+  {\light VLA} (variable-length array) are used when needed.
+
+  \hbar
+
+  \begin{Scala}
+def foo(size: Int, value: Int) { val a = Array.fill(size)(value) }
+  \end{Scala}
+
+  \pause
+
+  \vspace{-2em}
+  \center{is translated into}
+  \vspace{-0.5em}
+
+  \begin{C}
+void foo0(int32_t const size0, int32_t const value0) {
+  int32_t __leon_vla_buffer0§[§size0§]§; // actual memory alloc
+  for (int32_t __leon_i1 = 0; __leon_i1 < size0; ++__leon_i1) {
+    __leon_vla_buffer0[__leon_i1] = value0;
+  }
+  __leon_array_int32_t_t const a3 =
+    { @.length@ = size0, @.data@ = __leon_vla_buffer0 };
+}
+  \end{C}
+
+\end{frame}
+
+\begin{frame}[fragile]{Functions}
+  \emph{Nested} functions are extracted with their context.
+
+  \hbar
+
+  \begin{Scala}
+def foo(x: Int) = {
+  def bar(y: Int) = x * y
+  bar(2)
+}
+  \end{Scala}
+
+  \pause
+
+  \vspace{-2em}
+  \center{is translated into}
+
+  \begin{C}
+int32_t bar0(int32_t const@*@ x0, int32_t const y6)
+{ return @(*x0)@ * y6; }
+
+int32_t foo0(int32_t const x0)
+{ return bar0(@(&x0)@, 2); }
+  \end{C}
+
+\end{frame}
+
+\begin{frame}[fragile]{Functions -- bis}
+
+  \begin{Scala}
+def foo(x: Int) = {
+  def bar(y: Int) = {
+    def fun(z: Int) = x * y + z
+    fun(3)
+  }
+  bar(2)
+}
+  \end{Scala}
+
+  \pause
+
+  \vspace{-2em}
+  \center{is translated into}
+  \vspace{-0.5em}
+
+  \begin{C}
+int32_t fun0(int32_t const§*§ x0, int32_t const@*@ y6, int32_t const z9)
+{ return @(*x0)@ * @(*y6)@ + z9; }
+
+int32_t bar0(int32_t const@*@ x0, int32_t const y6)
+{ return fun0(§x0§, @(&y6)@, 3); }
+
+int32_t foo0(int32_t const x0)
+{ return bar0(@(&x0)@, 2); }
+  \end{C}
+
+\end{frame}
+
+\begin{frame}[fragile]{If construct}
+
+  Unlike in Scala, |if| statements don't {\light return} a value. Hence
+
+  \begin{columns}[T]
+	  \column{.5\textwidth}
+      \begin{Scala}
+def foo(x: Int) {
+  val b =
+    if (x >= 0) true else false
+}
+      \end{Scala}
+
+      \vspace{-2em}
+      \center{is translated into}
+      \vspace{-0.5em}
+
+      \begin{C}
+void foo0(int32_t const x0) {
+  bool b0; // no const here
+  if (x0 >= 0) { b0 = true; }
+  else { b0 = false; }
+}
+      \end{C}
+
+    \column{.5\textwidth}
+      \pause
+
+      \begin{onlyenv}<2->
+
+      \begin{Scala}
+def foo(x: Int) =
+  if (x >= 0) true else false
+      \end{Scala}
+
+      \vspace{0.5em}
+      \center{is translated into}
+      \vspace{-0.5em}
+
+      \begin{C}
+bool foo1(int32_t const x0) {
+  if (x0 >= 0) { return true; }
+  else { return false; }
+}
+      \end{C}
+
+      \end{onlyenv}
+
+  \end{columns}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{While construct}
+
+  \begin{Scala}
+def dummyAbs(a: Array[Int]) {
+  var i = 0;
+  while (i < a.length) {
+    a(i) = if (a(i) < 0) -a(i) else a(i)
+    i = i + 1
+  }
+}
+  \end{Scala}
+
+  \pause
+
+  \vspace{-2.5em}
+  \center{is translated into}
+  \vspace{-0.5em}
+
+  \begin{C}
+void dummyAbs0(__leon_array_int32_t_t const a0) {
+  int32_t i9 = 0;
+  while (i9 < a0.length) {
+    if (a0.data[i9] < 0) { a0.data[i9] = -a0.data[i9]; }
+    else { a0.data[i9] = a0.data[i9]; }
+    i9 = i9 + 1;
+  }
+}
+  \end{C}
+
+\end{frame}
+
+\begin{frame}[fragile]{Subexpressions execution order}
+
+  \begin{itemize}[label=\Triangle]
+    \item C standard is much more lax when it comes to execution order.
+    \item Hence the translation has to do some kind of \emph{normalisation}
+      to ensure the same behaviour.
+    \item This applies to function calls, operators, and blocks.
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]{Subexpressions execution order -- bis}
+
+  \begin{columns}[T]
+	  \begin{column}{.4\textwidth}
+
+      \begin{Scala}
+def test4(b: Boolean) = {
+  var i = 10;
+  var c = 0;
+  val f = b && !b // false
+  val t = b || !b // true
+
+  while ({ c = c + 1; t } &&
+         i > 0 ||
+         { c = c * 2; f }) {
+    i = i - 1
+  }
+
+  i == 0 && c == 22
+}
+      \end{Scala}
+
+    \end{column}
+    \pause
+
+    {\color{mLightBrown}\vrule{}}
+
+	  \begin{column}{.6\textwidth}
+
+      \begin{C}
+bool test40(bool const b0) {
+  int32_t i10 = 10;
+  int32_t c2 = 0;
+  bool const f26 = b0 && (!b0);
+  bool const t8  = b0 || (!b0);
+
+  while (§true§) {
+    c2 = c2 + 1;
+    if (t8 && i10 > 0) { i10 = i10 - 1; }
+    else {
+      c2 = c2 * 2;
+      if (f26) { i10 = i10 - 1; }
+      else { break; }
+    }
+  }
+
+  return i10 == 0 && c2 == 22;
+}
+      \end{C}
+
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\plain{
+  {\Huge Recap'}
+
+  \begin{itemize}[label=\Triangle]
+    \item Basic types
+    \item Tuples \& stack allocated arrays
+    \item Nested functions
+    \item If \& While constructs
+    \item Subexpressions orders
+  \end{itemize}
+}
+
+\section{What's next}
+
+\begin{frame}[fragile]{Future's work}
+  \begin{itemize}[label=\SmallArrow]
+    \item Support for non-recursive data type (@case class@).
+    \item A case study about image processing.
+  \end{itemize}
+
+  \vspace{3em}
+  \pause
+
+  \begin{itemize}[label=\Triangle]
+    \item Support for floating point types (|float|, |double|).
+    \item Support for @BigInt@, @Real@, e.g. using GMP.
+    \item Support for heap allocated arrays, e.g. using |malloc|.
+  \end{itemize}
+\end{frame}
+
+\plain{\Huge Questions?}
+
+\end{document}
+
+% vim: spell spelllang=en_gb
+% vim: set tabstop=2 softtabstop=2 shiftwidth=2 textwidth=80: %
+
