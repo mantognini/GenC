@@ -1,0 +1,6 @@
+*.toc
+*.log
+*.aux
+*.out
+report/tikz-figures
+*.auxlock
