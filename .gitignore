@@ -2,5 +2,14 @@
 *.log
 *.aux
 *.out
+*.bbl
+*.blg
 report/tikz-figures
 *.auxlock
+_markdown_report/
+report.markdown.in
+report.markdown.lua
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+leon.c
