@@ -13,3 +13,9 @@ report.markdown.lua
 *.fls
 *.synctex.gz
 leon.c
+slides.aux
+slides.nav
+slides.snm
+slides.xdv
+slides.vrb
+_minted-slides/
