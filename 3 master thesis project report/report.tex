@@ -324,25 +324,24 @@ implementing the famous LZW compression/decompression algorithm.
 Software become significantly more complex, solving every day new challenges,
 partly thanks to the decrease in price of hardware which is constantly improved,
 making computers more and more robust, quicker and more energy efficient.
-Constant breakthroughs enabled us to revolutionise how people benefits from
-their personal computers, or electronic devices in a general sense, to ends
-unforeseeable in some cases no longer than a decade ago: from the information
-now instantaneously available at our finger tips provided by satellites orbiting
-our planet in an environment ranging from extremely cold to scorching
-temperature with intense radiations, through remote devices performing advanced
-scientific experiments at an incredibly huge distance from us communicating
-using channels resilient to immense delay and numerous data errors, to surgical
-and medical tools helping to understand and to fight devastating diseases, for
-example using brain or heart implements to improve patients' life.
+Constant breakthroughs enabled us to revolutionise how people benefit from their
+personal computers, or electronic devices in a general sense: from the
+information now instantaneously available at our finger tips provided by
+satellites orbiting our planet in an environment ranging from extremely cold to
+scorching temperature with intense radiations, through remote devices performing
+advanced scientific experiments at an incredibly huge distance from us
+communicating using channels resilient to immense delay and numerous data
+errors, to surgical and medical tools helping to understand and to fight
+devastating diseases, for example using brain or heart implements to improve
+patients' life.
 
 Future technologies can be expected to follow a similar evolution, making
-obvious that systems complexity is predicted to not decrease at all.  Many
-companies already spend a considerable amount of money to assert their software
-is exempt of life threatening bugs through various certifications or to keep
-their data safe and available in a matter of jiffies. Hence, being able to
-evaluate the quality of software, detecting issues before they arise, in a
-reliable and simple fashion can significantly boost performance of Quality
-Assurance (QA) processes.
+obvious that systems complexity is predicted to increase. Many companies already
+spend a considerable amount of money to assert their software is exempt of life
+threatening bugs through various certifications or to keep their data safe and
+available in a matter of milliseconds. Hence, being able to evaluate the quality
+of software, detecting issues before they arise, in a reliable and simple
+fashion can significantly boost performance of Quality Assurance (QA) processes.
 
 Development strategies were developed to actively reinforce software. They can
 involve continuous integration servers to constantly check for defects by means
@@ -352,58 +351,19 @@ or runtime validations and exception mechanisms.
 
 \begin{figure}[!h]
   \centering
-  % \beginpgfgraphicnamed{dev-pipeline}
-  \begin{tikzpicture}
-    [auto,
-     box/.style   ={rectangle, draw=#1, thick, fill=#1!50,
-                    text width=5em, text centered, rounded corners,
-                    minimum height=2em},
-     step/.style  ={circle, draw=#1, thick, fill=#1!50,
-                    text width=2em, text centered,
-                    minimum height=1em}
-    ]
-
-    \matrix [column sep=5mm,row sep=7mm]
-    {
-      % row 1
-      \node [box=c1] (repair) {Repair}; &
-      \node [box=c1] (verify) {Verify}; &
-      \node [box=c1] (synthesise) {Synthesise}; \\
-      % row 2
-      & \node [box=c1] (genc) {Generate C Code}; & \\
-      % row 3
-      & \node [box=c3] (compile) {(Cross) Compile}; & \\
-      % row 4
-      & \node [box=c4] (execute) {Execute}; & \\
-    };
-
-    \begin{scope}[every node/.style={font=\small\itshape}]
-      \draw [ultra thick, ->, c1] (repair.south) to [bend right=30] (genc.west);
-      \draw [ultra thick, ->, c1] (verify.south) to (genc.north);
-      \draw [ultra thick, ->, c1] (synthesise.south) to [bend left=30] (genc.east);
-      \draw [ultra thick, ->, c1] (genc.south) to (compile.north);
-      \draw [ultra thick, ->, c4] (compile.south) to (execute.north);
-    \end{scope}
-
-    \begin{pgfonlayer}{background}
-      \node[fill=c1!50,opacity=.5,inner sep=0pt,ellipse,
-            fit=(repair) (verify) (synthesise) (genc)] (leon) {};
-      \node[above left, font=\large] at (leon.south east) {Leon};
-    \end{pgfonlayer}
-  \end{tikzpicture}
-  \endpgfgraphicnamed
+  \includegraphics{res/dev_process.pdf}
   \caption{Development Process}
   \label{fig:dev-pipeline}
 \end{figure}
 
 For programs written in Scala, Leon \cite{leonweb} is a powerful instrument that
 works at solving this general issue of quality by providing tools to verify
-contracts, repair erroneous implementations or even synthesis code. However,
-Scala being based on JVM runtime, such tools are close to worthless for many
-companies that run their software on very small devices: the lack of memory and
-CPU resources prevents running virtualised code on such hardware. This explains
-why those systems are written in low-level, native languages often taking their
-roots in the C language.
+contracts, repair erroneous implementations or even synthesises code. However,
+because Scala is based on JVM runtime, such tools are close to worthless for
+many companies that run their software on very small devices: the lack of memory
+and CPU resources prevents running virtualised code on such hardware. This
+explains why those systems are written in low-level, native languages often
+taking their roots in the C language.
 
 For these reasons we have previously introduced the \GenC module of Leon
 \cite{genc1} to transpile Scala programs into a safe and equivalent C99 pieces
@@ -423,6 +383,11 @@ any standard-compliant C99 compiler -- for example Clang \cite{clang}, GCC
 hardware architectures. Then the compiled program can be shipped to the desired
 hardware and executed as usual.
 
+I first introduced \GenC through an \emph{Optional Semester Project} at EPFL.
+The work presented in this report is a continuation of this initial project in
+the form of my \emph{Master Thesis Project}. Both projects were supervised by
+the \emph{Lab for Automated Reasoning and Analysis} (LARA).
+
 The present work adds to \GenC a better support for object oriented or generic
 programming, a wider range of supported primitive types, an improved handling of
 arithmetic expressions and an interfacing system to integrate existing
@@ -432,14 +397,15 @@ our analyse of recent improvements made to the \emph{xlang} module
 \cite{Blanc:2013:OLV:2489837.2489838} \cite{xlang} regarding mutability. One
 singular feature of this model is that it is solely based on stack allocation.
 
-Furthermore, we studied security processes used for development of applications
-targeted at embedded devices, such as the ones used in the automotive industry.
-This work resulted in a re-engineering of \GenC to work toward compliance with
-the MISRA Guidelines, which is intended to bring in robustness and reliability
-to the software, and to empower users with more static analysis tools. We
-discuss in this document how verification can help seriously reduce the amount
-of bugs in programs and report on how the Leon ecosystem manages to produce safe
-code free of undefined behaviour and under which assumptions.
+Furthermore, we studied reliability processes used for development of
+applications targeted at embedded devices, such as the ones used in the
+automotive industry. This work resulted in a re-engineering of \GenC to work
+toward compliance with the MISRA Guidelines, which is intended to bring in
+robustness and reliability to the software, and to empower users with more
+static analysis tools. We discuss in this document how verification can help
+substantially reduce the amount of bugs in programs and report on how the Leon
+ecosystem manages to produce safe code free of undefined behaviour and under
+which assumptions.
 
 We also present two implementation of the famous LZW \cite{welch1985high}
 compression and decompression algorithm, illustrating how \GenC can
@@ -470,8 +436,25 @@ how bugs are tracked down in compilers.
 First, we note that \GenC is not the first attempt to translate a high-level
 language down to C. There exists, for example, the now discontinued java2c
 \cite{java2c} project which claims to transpile a limited fragment of Java to C.
-However, contrary to java2c, \GenC is built into a wider ecosystem that make
-such translation even more meaningful thanks to the different modules of Leon.
+The free GNU Compiler for Java (GCJ), which is now discontinued as well and has
+been removed from the GNU Compiler Collection (GCC), was designed to be capable
+of emitting both bytecode and machine code. However, contrary to those two
+projects, \GenC is built into a wider ecosystem that makes such translation even
+more meaningful thanks to the different modules of Leon.
+
+FLEX \cite{flex} was a compiler infrastructure for Java that featured program
+analysis and optimisations for distributed and embedded systems with native
+backends for StrongARM and MIPS processors. It was also capable of producing C
+code, but unlike \GenC all its backends relied on a garbage collector at
+runtime.
+
+\GenC works on Scala programs, which would, if run as-is, require a full-fledged
+Java Virtual Machine to be executed. There exists however some version of Java
+and its virtual machine that are significantly lighter such as the JavaCard
+system \cite{javacard}, which can run on microprocessor. Compared to C, this
+subset of Java offers a better portability system with its well-defined runtime
+and standard library. However, these advantages are limited by issues of
+performance and memory size.
 
 Frama-C \cite{framac} is somewhat similar to the static analysis modules of
 Leon. Both offer to verify without actually running programs whether some
@@ -485,16 +468,31 @@ block, to the generated C99 code based on the original verification conditions
 the user wrote in Scala would be beneficial to help prove the new, low-level
 program still respects its original specification.
 
+Microsoft has also been working on a similar project to Frama-C called VCC
+\cite{vcc}, with a major difference being that VCC works at verifying concurrent
+C programs. The sub-language used to specify verification conditions is
+significantly different, yet has no impact on runtime as well. It is not clear
+whether this project is still active or not. Currently, \GenC do not offer the
+ability to work with concurrent programs written in Scala.
+
+The Cyclone programming language \cite{cyclone} was designed based on C to bring
+safety to the language using a similar syntax, avoiding bugs such as buffer
+overflows, format string attacks, dangling pointer accesses, and so forth. It
+added support for exceptions, region-based memory management as well as an
+optional garbage collector on top of the usual manual memory management of C.
+Cyclone is now discontinued but several of its concept made their way into the
+Rust system programming language. To the contrary, \GenC produces pure C99
+programs, which are exempt of dangling pointers, while still being able, thanks
+to Leon, detect any potential buffer overflow.
+
 Finally, to design any program bigger than a few assembly instructions one will
-need to use a compiler for whatever language is being used. However, those
-specific programs are no different from the one most developers write: they can
-contain bugs. And because those defects could impact any application, regardless
-of its domain, and therefore result in disastrous consequences. In that respect,
-\GenC indirectly relies on project such as Csmith \cite{csmith} to improve the
-quality of compilers, especially the C ones, in order to test its ability to
-produce valid C. While \GenC currently only relies on classic regression tests,
-it could be interesting to use a similar generator of random test-case than the
-one used by Csmith to further assess its ability to transpile Scala code.
+need to use a compiler for whatever language is being used. \GenC indirectly
+relies on project such as Csmith \cite{csmith} to improve the quality of
+compilers, especially the C ones, in order to test its ability to produce valid
+C. While \GenC currently only relies on classic regression tests, it could be
+interesting to use a similar generator of random test-case than the one used by
+Csmith to further assess its ability to transpile Scala code.
+
 
 \section{Motivation}
 \label{motivation}
@@ -511,7 +509,7 @@ embedded devises, introduce the MISRA Guidelines used by the industry to
 certify the quality of programs and how \GenC fit in this certification process.
 
 
-\subsection{A Long History of Bugs}
+\subsection{A History of Bugs}
 \label{bug_history}
 
 There are some well-known bugs in the history of computer science that caused
