@@ -15,6 +15,9 @@
 % Landscape mode
 \usepackage{pdflscape}
 
+% Additional font
+\usepackage{FiraMono}
+
 % Bibtex+cite
 \usepackage{cite}
 \usepackage{url}
@@ -2553,6 +2556,8 @@ exposed in \RefCode{lst:lzwalgo}. Errors, such as premature end of file, are
 left out here for simplicity but our implementations do handle them.
 
 \begin{lstlisting}[
+  basicstyle=\firamonolining,
+  mathescape=true,
   label=lst:lzwalgo,
   caption=The three main procedures of the LZW algorithm.,
   captionpos=b,
@@ -2566,47 +2571,47 @@ PROCEDURE initialise dictionary, INPUT dictionary D:
 end
 
 PROCEDURE encode, INPUT string data:
-  let D be an empty dictionary
+  D $\gets$ empty dictionary
   initialise dictionary D
 
-  w <- "" (the empty string)
+  w $\gets$ "" (the empty string)
 
-  for each character c in data:
-    wc <- concatenate w and c
-    if D contains wc:
-      w <- wc
-    else:
-      read the codeword o in D for w
+  for each character c in data
+    wc $\gets$ w + c
+    if D contains wc
+      w $\gets$ wc
+    else
+      o $\gets$ codeword for w in D
       output o
-      associate cw to the next free codeword and
+      associate wc to the next free codeword and
       add the relation in D
-      assign c to w
+      w $\gets$ c
     end
   end
 
-  read the codeword o in D for w
+  o $\gets$ codeword for w in D
   output o
 end
 
 PROCEDURE decode, INPUT sequence of codewords data:
-  let D be an empty dictionary
+  D $\gets$ empty dictionary
   initialise dictionary D
 
-  previous <- consume head of data
-  read the string o associated with p in D
+  previous $\gets$ consume head of data
+  o $\gets$ string associated with p in D
   output o
 
   for each codeword current in data
-    read the string s associated with current in D
+    s $\gets$ string associated with current in D
     output s
 
-    let c be the first character of s
-    read the string t associate with previous in D
-    wc <- t + c
+    c $\gets$ first character of s
+    t $\gets$ string associated with previous in D
+    wc $\gets$ t + c
     associate wc to the next free codeword and
     add the relation in D
 
-    previous <- current
+    previous $\gets$ current
   end
 end
 \end{lstlisting}
