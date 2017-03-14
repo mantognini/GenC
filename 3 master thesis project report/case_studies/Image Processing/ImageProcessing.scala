@@ -285,45 +285,57 @@ object ImageProcessing {
   def maybeReadWord(fis: FIS)(implicit state: leon.io.State): MaybeResult[Int] = {
     require(fis.isOpen)
 
-    // From little to big endian
-    def buildShort(b1: Byte, b2: Byte): Int = {
-      (b2 << 8) | (b1 & 0xff) // has Int type
-    } ensuring { short =>
-      inRange(short, -32768, 32767)
-    }
-
     val byte1 = fis.tryReadByte
     val byte2 = fis.tryReadByte
 
-    if (byte1.isDefined && byte2.isDefined) {
-      // Shift range appropriately to respect unsigned numbers representation
-      val signed   = buildShort(byte1.get, byte2.get)
-      val unsigned = if (signed < 0) signed + 65536 else signed
-      Result(unsigned)
-    } else Failure[Int](ReadError())
+    if (byte1.isDefined && byte2.isDefined) Result(constructWord(byte1.get, byte2.get))
+    else Failure[Int](ReadError())
   } ensuring { res =>
     res match {
-      case Result(word) => inRange(word, 0, 65536)
+      case Result(word) => inRange(word, 0, 65535)
       case _            => true
     }
   }
 
+  private def constructWord(byte1: Byte, byte2: Byte): Int = {
+    // From little to big endian
+    // Shift range appropriately to respect unsigned numbers representation
+    val signed   = (byte1 << 8) | (byte2 & 0xff) // has Int type
+    val unsigned = if (signed < 0) signed + (2 * 32768) else signed
+
+    unsigned
+  } ensuring { word => inRange(word, 0, 65535) }
+
   // Write a WORD
   def writeWord(fos: FOS, word: Int): Boolean = {
-    require(fos.isOpen && inRange(word, 0, 65536))
+    require(fos.isOpen && inRange(word, 0, 65535))
 
-    // Shift range appropriatedly to respect integer representation
-    val signed = if (word >= 32768) word - 32768 else word
+    val (b1, b2) = destructWord(word)
+
+    // From big endian to little endian
+    fos.write(b1) && fos.write(b2)
+  }
+
+  private def destructWord(word: Int): (Byte, Byte) = {
+    require(inRange(word, 0, 65535))
+
+    // Shift range appropriately to respect integer representation
+    val signed = if (word >= 32768) word - (2 * 32768) else word
 
     val b2 = (signed >>> 8).toByte
     val b1 = signed.toByte
 
-    // Convert big endian to little endian
-    fos.write(b1) && fos.write(b2)
+    (b1, b2)
   }
 
+  private def lemmaWord(byte1: Byte, byte2: Byte): Boolean = {
+    val word = constructWord(byte1, byte2)
+    val (b1, b2) = destructWord(word)
+    b1 == byte1 && b2 == byte2
+  }.holds
+
   // Attempt to read a DWORD (32-bit unsigned integer).
-  // The result is represented using an Int, and values bigger than 2^31 results in DomainError.
+  // The result is represented using an Int, and values bigger than 2^31 - 1 results in DomainError.
   def maybeReadDword(fis: FIS)(implicit state: leon.io.State): MaybeResult[Int] = {
     require(fis.isOpen)
 

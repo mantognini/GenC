@@ -2625,7 +2625,7 @@ The algorithm compression power is however limited by the size of the
 dictionary: the dictionary is considered full when all codewords have been
 associated with a string. In that situation several alternative are possible.
 One could always stop the encoding or decoding phase and report an error.
-Because this is not satisfactory in out opinion, we instead decided to enter an
+Because this is not satisfactory in our opinion, we instead decided to enter an
 alternative encoding/decoding mode in which only existing codeword are used and
 the dictionary stop growing. This allows processing files of all sizes. Other
 options includes clearing the dictionary when full, except for the codewords for
@@ -2994,6 +2994,322 @@ performance of the JVM-based implementations to the transpiled programs as no
 effort was made to avoid these well-known limitations.
 
 
+\section{Case Study: Image Processing}
+
+To further illustrate what \GenC is capable of, we present in this section a
+case study on image processing. In this example, we first load some image stored
+in a file, then apply some filter and finally save the modified image back in a
+new file. We discuss next mainly how the image data is safely read from and
+saved to the filesystem, and present the main algorithm used by this case study.
+We however do not discuss performance metrics of the implementation as most of
+the execution time is spent in I/O operations.
+
+\subsection{Safely Acquiring Image Data}
+
+For this experiment, we implemented a minimalistic parser for bitmap files
+(BMP). Because the goal is not to support all variations of BMP files, our
+software exclusively works on 24-bit image stored without compression that are
+exempt of custom palette. Additionally, due to the constraint of static memory
+allocation, we explicitly limit the size of images to a maximum of 512 by 512
+pixels. However, one could support images of arbitrarily large size by
+processing images chunk by chunk, thanks to the nature of the image processing
+used here.
+
+In order to write safe programs, especially those using I/O operations, one need
+to track down potential errors. At this stage of the project, exception are not
+supported by \GenC. The remaining alternative is to work with error code. To do
+this in a type safe manner we define an enumeration of \InlineS{Status}, such as
+\InlineS{Success}, \InlineS{OpenError}, \InlineS{CorruptedDataError} and so on.
+\GenC appropriately converts this set of values into a C \InlineC{enum},
+therefore converting the class hierarchy in Scala to a lightweight value
+representation in native C code.
+
+\begin{Code}{Leon}{lst:outParams}{Thin wrapper for \emph{out}-parameters.}
+abstract class Status
+case class Success() extends Status
+case class Failure() extends Status
+
+case class Switch(val s: Boolean)
+
+case class Out[A](var value: A)
+
+def foo(a: Out[Int], b: Out[Switch]): Status = {
+  a.value = 42
+  b.value = Switch(true)
+  Success()
+}
+\end{Code}
+
+However, returning a \InlineS{Status} from a function typically means that an
+\emph{out}-parameter is required. To propagate side-effect one can rely on a
+thin wrapper, such as \InlineS{Out[A]} in \RefCode{lst:outParams}. But this
+technique generally leads to verbose programs and has the downside to require a
+default initialisation of variable, often with random values. For example,
+a call site to function \InlineS{foo} of \RefCode{lst:outParams} would look like
+this:
+
+\pagebreak
+\begin{ShortCode}{Leon}
+val outParamInt = Out(0)
+val outParamSwitch = Out(Switch(false))
+val status = foo(outParamInt, outParamSwitch)
+\end{ShortCode}
+
+Here, the choice of \InlineS{0} and \InlineS{false} to initialise the
+\emph{out}-parameters is purely arbitrary. It can also be argued that for some
+more complex type, it is not trivial to provide a default value. Regardless of
+those issues, \GenC supports \InlineS{Out}-parameters.
+
+Alternatively, the \InlineS{foo} function can be modified to return a
+\InlineS{(Success, Int, Switch)}. This, of course, moves the burden of default
+initialisation to \InlineS{foo} itself instead of call sites. But in both case,
+one has to remember to check the returned \InlineS{Status} before using the
+\emph{out}-parameters (or the other member of the tuple).
+
+Contrary to C, in Scala we can leverage the type system to ensure that
+\emph{out}-parameters are only used when the returned \InlineS{Status} is a
+\InlineS{Success}. The idea is to provide, through inheritance, two
+alternatives: a success means the result of a function is available, and a
+failure means that the status is not \InlineS{Success}. The former is a
+\InlineS{Result[A]} and the latter is represented by \InlineS{Failure[A]}:
+\begin{ShortCode}{Leon}
+abstract class MaybeResult[A] { /* ... */ }
+case class Result[A](result: A) extends MaybeResult[A]
+case class Failure[A](status: Status) extends MaybeResult[A] {
+  require(status != Success())
+}
+\end{ShortCode}
+
+With \InlineS{MaybeResult}, the \InlineS{foo} function can be rewritten to
+return a \InlineS{MabyeResult[(Int, Switch)]} and therefore no longer require to
+arbitrarily construct some value in case of failure. At call sites, one can rely
+on pattern matching to extract the result, if the call was successful. This
+technique has the additional benefit to increase compliance with Directive 4.7
+of the MISRA Guidelines, which requires that error information returned from
+function should be tested.
+
+In combination with \InlineS{leon.lang.Option}, \InlineS{MabyeResult} were used
+in this case study to improve the safety of the programs: for every cast or
+pattern matching, Leon detect potential misuse of the language that can result
+in runtime errors or missing branches.
+
+One important fact about BMP format is that integers are stored in little endian
+format. This means that when loading a \emph{WORD}, for example, the two bytes
+used to represent the 16-bit unsigned integer have to be ``swapped'' using
+bitwise operations. Moreover, since Scala only exposes signed integer types,
+\emph{WORDs} have to be represented using \InlineS{Int}s. Therefore, to
+translate a 16-bit unsigned integer into one using two's complement
+representation, one has to add 65536 to ``negative'' numbers.
+\RefCode{lst:readWord} details how these elements are put together for the
+specific example of \emph{WORD}. The print operation for \emph{WORD}s is shown
+in \RefCode{lst:writeWord}. Additionally, we wrote a small proof, which Leon is
+capable of verifying, showing that our conversions from little to big endian as
+well as from signed to unsigned are consistent:
+\begin{ShortCode}{Leon}
+private def lemmaWord(byte1: Byte, byte2: Byte): Boolean = {
+  val word = constructWord(byte1, byte2)
+  val (b1, b2) = destructWord(word)
+  b1 == byte1 && b2 == byte2
+}.holds
+\end{ShortCode}
+
+\begin{Code}{Leon}{lst:readWord}{Parsing a \emph{WORD}.}
+// Attempt to read a WORD (16-bit unsigned integer).
+// The result is represented using an Int.
+def maybeReadWord(fis: FIS)(implicit state: State): MaybeResult[Int] = {
+  require(fis.isOpen)
+  val byte1 = fis.tryReadByte
+  val byte2 = fis.tryReadByte
+  if (byte1.isDefined && byte2.isDefined)
+    Result(constructWord(byte1.get, byte2.get))
+  else
+    Failure[Int](ReadError())
+} ensuring { res =>
+  res match {
+    case Result(word) => inRange(word, 0, 65535)
+    case _            => true
+  }
+}
+
+private def constructWord(byte1: Byte, byte2: Byte): Int = {
+  // From little to big endian
+  // Shift range appropriately to respect unsigned numbers representation
+  val signed   = (byte1 << 8) | (byte2 & 0xff) // has Int type
+  val unsigned = if (signed < 0) signed + (2 * 32768) else signed
+  unsigned
+} ensuring { word => inRange(word, 0, 65535) }
+\end{Code}
+
+\begin{Code}{Leon}{lst:writeWord}{Writing a \emph{WORD}.}
+// Write a WORD
+def writeWord(fos: FOS, word: Int): Boolean = {
+  require(fos.isOpen && inRange(word, 0, 65535))
+  // From big endian to little endian
+  val (b1, b2) = destructWord(word)
+  fos.write(b1) && fos.write(b2)
+}
+
+private def destructWord(word: Int): (Byte, Byte) = {
+  require(inRange(word, 0, 65535))
+  // Shift range appropriately to respect integer representation
+  val signed = if (word >= 32768) word - (2 * 32768) else word
+  val b2 = (signed >>> 8).toByte
+  val b1 = signed.toByte
+  (b1, b2)
+}
+\end{Code}
+
+\pagebreak
+Finally, after parsing the bitmap header data to identify where the image data
+starts in the file, loading the pixels is fairly easy: the RGB components of
+each pixel are simply interleaved so that a usual \InlineS{while} loop is enough
+to read them one after the other. Furthermore, saving the modified image back to
+the disk involves no special computation: it suffices to check that all output
+operations succeeded.
+
+\subsection{Image Manipulation Using Kernels}
+
+The image processing part of this case study involves a usual matrix convolution
+approach: a \emph{kernel}, which represent the filter to be applied, is
+implemented as a 2D matrix of integers and a scaling factor. In our
+implementation, the matrix is stored into a 1D array and can be constructed as
+follows:
+\begin{ShortCode}{Leon}
+// Sharpen
+val kernel = Kernel(size = 5, scale = 8, Array(
+  -1, -1, -1, -1, -1,
+  -1,  2,  2,  2, -1,
+  -1,  2,  8,  2, -1,
+  -1,  2,  2,  2, -1,
+  -1, -1, -1, -1, -1
+))
+\end{ShortCode}
+
+In other words, a given pixel will be modulated according to its neighbouring
+and the kernel matrix, which represent the weight of each pixels in the vicinity
+of the source pixel. By changing only the kernel, one can produce various
+effects. \RefFig{fig:kernels} shows three examples, all of which were generated
+using the C code produced by \GenC for this case study.
+
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[->, thick, c2, auto]
+  \matrix[row sep = 5em, column sep = .35\textwidth]{
+    \node (i0) {\includegraphics[width = .33\textwidth]{res/input3.png}};        &
+    \node (o0) {\includegraphics[width = .33\textwidth]{res/output3edge.png}};   \\
+    \node (i1) {\includegraphics[width = .33\textwidth]{res/input2.png}};        &
+    \node (o1) {\includegraphics[width = .33\textwidth]{res/output2blur3x.png}}; \\
+    \node (i2) {\includegraphics[width = .33\textwidth]{res/input6.png}};        &
+    \node (o2) {\includegraphics[width = .33\textwidth]{res/output6sharp.png}};  \\
+  };
+
+  \newcommand{\edgeMat}{$
+    \begin{pmatrix}
+       0 &  0 & -1 &  0 &  0 \\
+       0 &  0 & -1 &  0 &  0 \\
+      -1 & -1 &  8 & -1 & -1 \\
+       0 &  0 & -1 &  0 &  0 \\
+       0 &  0 & -1 &  0 &  0
+    \end{pmatrix}
+  $}
+
+  \newcommand{\blurMat}{$
+    \frac{1}{25}
+    \begin{pmatrix}
+       1 &  1 &  1 &  1 &  1 \\
+       1 &  1 &  1 &  1 &  1 \\
+       1 &  1 &  1 &  1 &  1 \\
+       1 &  1 &  1 &  1 &  1 \\
+       1 &  1 &  1 &  1 &  1
+    \end{pmatrix}
+  $}
+
+  \newcommand{\sharpMat}{$
+    \frac{1}{8}
+    \begin{pmatrix}
+      -1 & -1 & -1 & -1 & -1 \\
+      -1 &  2 &  2 &  2 & -1 \\
+      -1 &  2 &  8 &  2 & -1 \\
+      -1 &  2 &  2 &  2 & -1 \\
+      -1 & -1 & -1 & -1 & -1
+    \end{pmatrix}
+  $}
+
+  \path ([yshift=1cm]i0.east) edge node[above] {edge detection} node[below] {\edgeMat}  ([yshift=1cm]o0.west);
+  \path ([yshift=1cm]i1.east) edge node[above] {blurring}       node[below] {\blurMat}  ([yshift=1cm]o1.west);
+  \path ([yshift=1cm]i2.east) edge node[above] {sharpening}     node[below] {\sharpMat} ([yshift=1cm]o2.west);
+\end{tikzpicture}
+\caption{Three examples of Kernels: edge detection, blurring and sharpening filters.}
+\label{fig:kernels}
+\end{figure}
+
+The algorithm itself is relatively straightforward, as shown in
+\RefCode{lst:kernelApply}. With the complete version available in
+\RefApp{img_proc_code}, Leon is capable of showing that all array accesses and
+arithmetic operations are valid, with two exceptions: the \InlineS{+=} and
+\InlineS{*} on line 37 of \RefCode{lst:kernelApply}.
+
+In order to prove that those two operations do not overflow, one should probably
+add some constraint on the kernel size and its matrix content. For example, if
+the size is assured to be at most 5 by 5 and all values of the matrix in the
+range $[-10, 10]$, then only 16 bits are required to compute the new pixel
+values before scaling it down as $5 * 5 * 10 * 256 < 2^{16}$. From this, we can
+assume that in practice no overflow will occur when using 32-bit integers and
+regular kernels.
+
+\lstset{numbers=left}
+\begin{Code}{Leon}{lst:kernelApply}{Implementation of the matrix convolution}
+case class Kernel(size: Int, scale: Int, kernel: Array[Int]) {
+  def apply(src: Image, dest: Image): Unit = {
+    require(src.w == dest.w && src.h == dest.h)
+
+    val size = src.w * src.h
+    var i = 0
+    (while (i < size) {
+      dest.r(i) = apply(src.r, src.w, src.h, i)
+      dest.g(i) = apply(src.g, src.w, src.h, i)
+      dest.b(i) = apply(src.b, src.w, src.h, i)
+
+      i += 1
+    }) invariant (inRange(i, 0, size))
+  }
+
+  private def apply(channel: Array[Byte],
+                    width: Int, height: Int, index: Int): Byte = {
+    require(/*...*/)
+
+    // Get the colour component at the given position
+    def at(col: Int, row: Int):Int = {/*...*/} ensuring { inRange(_, 0, 255) }
+
+    val mid = size / 2
+    val i = index % width
+    val j = index / width
+
+    var res = 0
+    var p   = -mid
+    (while (p <= mid) {
+      var q = -mid
+      (while (q <= mid) {
+        val kcol = p + mid
+        val krow = q + mid
+        val kidx = krow * size + kcol
+
+        // Here, the += and * operation could overflow
+        res += at(i + p, j + q) * kernel(kidx)
+
+        q += 1
+      }) invariant (inRange(q, -mid, mid + 1))
+      p += 1
+    }) invariant (inRange(p, -mid, mid + 1))
+
+    clamp(res / scale, 0, 255).toByte
+  }
+}
+\end{Code}
+\lstset{numbers=none}
+
+
 \section{Conclusion}
 \label{conclusion}
 
@@ -3182,7 +3498,6 @@ report:
 \end{itemize}
 
 
-\addtocontents{toc}{\protect\newpage}
 \appendix
 
 \section{Operator Equivalence Table}
@@ -3342,6 +3657,7 @@ reasons detailed in \RefSec{lzw_dictionaries}. It can however be accessed here:
 \lstinputlisting[language=C99, style=LongCode]{case_studies/LZW/LZWb.c}
 
 \section{Image Processing Implementation}
+\label{img_proc_code}
 
 For completeness, we give print here our implementation of the Image Processing
 case study written in Scala as well as the C99 program generated by \GenC. The
