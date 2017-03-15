@@ -291,7 +291,8 @@ matching and more. Additionally, we closely analyse the MISRA Guidelines and
 shape the generated C code to work towards compliance with its rules while
 taking advantage of the verification capabilities of Leon to automatically
 detect a variety of bugs. We discuss these improvements and new features by
-implementing the famous LZW compression/decompression algorithm.
+implementing the famous LZW compression/decompression algorithm and a
+kernel-based image processing algorithm.
 
 \end{abstract}
 
@@ -411,8 +412,9 @@ ecosystem manages to produce safe code free of undefined behaviour and under
 which assumptions.
 
 We also present two implementation of the famous LZW \cite{welch1985high}
-compression and decompression algorithm, illustrating how \GenC can
-successfully be used for real-life applications.
+compression and decompression algorithm, as well as some image manipulations
+based on filters, illustrating how \GenC can successfully be used for real-life
+applications.
 
 We structure this report as follow. First we finish this section by reviewing
 some related works. In \RefSec{motivation} we highlight the most common kinds of
@@ -424,10 +426,11 @@ from Scala down to C in Sections \ref{translation_defs} and
 \ref{translation_exprs}. Next, we specify how external libraries can be
 integrated into the translation process in \RefSec{library}. In \RefSec{MISRA}
 we present the MISRA Guidelines, discuss its importance and explain how Leon and
-\GenC work toward compliance. Then, we showcase in \RefSec{lzw} the abilities of
-\GenC by implementing the LZW algorithm. We summarise this report in
-\RefSec{conclusion} and in the final \RefSec{future_works} we introduce how Leon
-and \GenC can be further improved to help developing safe applications.
+\GenC work toward compliance. Then, we showcase in Sections \ref{lzw} and
+\ref{img_proc} the abilities of \GenC by implementing the LZW algorithm and some
+image processing algorithm. We summarise this report in \RefSec{conclusion} and
+in the final \RefSec{future_works} we introduce how Leon and \GenC can be
+further improved to help developing safe applications.
 
 \subsection*{Related Works}
 
@@ -2995,6 +2998,7 @@ effort was made to avoid these well-known limitations.
 
 
 \section{Case Study: Image Processing}
+\label{img_proc}
 
 To further illustrate what \GenC is capable of, we present in this section a
 case study on image processing. In this example, we first load some image stored
@@ -3118,8 +3122,9 @@ private def lemmaWord(byte1: Byte, byte2: Byte): Boolean = {
 // The result is represented using an Int.
 def maybeReadWord(fis: FIS)(implicit state: State): MaybeResult[Int] = {
   require(fis.isOpen)
-  val byte1 = fis.tryReadByte
+  // From little to big endian
   val byte2 = fis.tryReadByte
+  val byte1 = fis.tryReadByte
   if (byte1.isDefined && byte2.isDefined)
     Result(constructWord(byte1.get, byte2.get))
   else
@@ -3132,7 +3137,6 @@ def maybeReadWord(fis: FIS)(implicit state: State): MaybeResult[Int] = {
 }
 
 private def constructWord(byte1: Byte, byte2: Byte): Int = {
-  // From little to big endian
   // Shift range appropriately to respect unsigned numbers representation
   val signed   = (byte1 << 8) | (byte2 & 0xff) // has Int type
   val unsigned = if (signed < 0) signed + (2 * 32768) else signed
@@ -3144,17 +3148,17 @@ private def constructWord(byte1: Byte, byte2: Byte): Int = {
 // Write a WORD
 def writeWord(fos: FOS, word: Int): Boolean = {
   require(fos.isOpen && inRange(word, 0, 65535))
-  // From big endian to little endian
   val (b1, b2) = destructWord(word)
-  fos.write(b1) && fos.write(b2)
+  // From big endian to little endian
+  fos.write(b2) && fos.write(b1)
 }
 
 private def destructWord(word: Int): (Byte, Byte) = {
   require(inRange(word, 0, 65535))
   // Shift range appropriately to respect integer representation
   val signed = if (word >= 32768) word - (2 * 32768) else word
-  val b2 = (signed >>> 8).toByte
-  val b1 = signed.toByte
+  val b1 = (signed >>> 8).toByte
+  val b2 = signed.toByte
   (b1, b2)
 }
 \end{Code}
@@ -3350,9 +3354,9 @@ can be extremely beneficial and what the user is required to do to work his way
 through full compliance.
 
 We ended the discussion by using the LZW data compression and decompression
-algorithm to illustrate how successfully \GenC can perform on real-life
-programs, although identifying some limitations with nested arrays that are the
-consequences of our memory model.
+algorithm and an algorithm to apply filters on images to illustrate how
+successfully \GenC can perform on real-life programs, although identifying some
+limitations with nested arrays that are the consequences of our memory model.
 
 
 \section{Future Works}

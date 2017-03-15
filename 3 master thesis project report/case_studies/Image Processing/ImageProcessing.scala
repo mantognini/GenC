@@ -285,8 +285,9 @@ object ImageProcessing {
   def maybeReadWord(fis: FIS)(implicit state: leon.io.State): MaybeResult[Int] = {
     require(fis.isOpen)
 
-    val byte1 = fis.tryReadByte
+    // From little to big endian
     val byte2 = fis.tryReadByte
+    val byte1 = fis.tryReadByte
 
     if (byte1.isDefined && byte2.isDefined) Result(constructWord(byte1.get, byte2.get))
     else Failure[Int](ReadError())
@@ -298,7 +299,6 @@ object ImageProcessing {
   }
 
   private def constructWord(byte1: Byte, byte2: Byte): Int = {
-    // From little to big endian
     // Shift range appropriately to respect unsigned numbers representation
     val signed   = (byte1 << 8) | (byte2 & 0xff) // has Int type
     val unsigned = if (signed < 0) signed + (2 * 32768) else signed
@@ -313,7 +313,7 @@ object ImageProcessing {
     val (b1, b2) = destructWord(word)
 
     // From big endian to little endian
-    fos.write(b1) && fos.write(b2)
+    fos.write(b2) && fos.write(b1)
   }
 
   private def destructWord(word: Int): (Byte, Byte) = {
@@ -322,8 +322,8 @@ object ImageProcessing {
     // Shift range appropriately to respect integer representation
     val signed = if (word >= 32768) word - (2 * 32768) else word
 
-    val b2 = (signed >>> 8).toByte
-    val b1 = signed.toByte
+    val b1 = (signed >>> 8).toByte
+    val b2 = signed.toByte
 
     (b1, b2)
   }
