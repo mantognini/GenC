@@ -5,10 +5,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <time.h>
 
 /* -------------------------------- type aliases ----- */
 
 typedef FILE* FileInputStream;
+typedef clock_t TimePoint;
 typedef void* State;
 typedef FILE* FileOutputStream;
 
@@ -366,13 +368,16 @@ static int32_t buildInt_1(FileInputStream* fis_3, State* state_8, int8_t b1_7, i
 static void log_1(FileHeader_0 h_1);
 static int32_t clamp_0(int32_t x_3, int32_t down_0, int32_t up_0);
 static Tuple_int32_int32_int32 getResult_1_Tuple_int32_int32_int32(MaybeResult_0_Tuple_int32_int32_int32 thiss_2);
+static TimePoint now_0(void);
 static void print_0(char* x_9);
 static MaybeResult_0_Tuple_Tuple_int32_int32_int32_int32 combine_0_Tuple_int32_int32_int32_int32(MaybeResult_0_Tuple_int32_int32_int32 a_0, MaybeResult_0_int32 b_0);
 static bool writeBytes_0(FileOutputStream fos_0, int8_t byte_0, int32_t count_2);
+static enum_Status_0 process_0(FileInputStream fis_7, FileOutputStream fos_5, State state_12);
 static MaybeResult_0_Tuple_int32_int32_int32 combine_1_int32_int32_int32(MaybeResult_0_int32 a_1, MaybeResult_0_int32 b_1, MaybeResult_0_int32 c_0);
 static int32_t buildInt_0(FileInputStream* fis_2, State* state_7, int8_t b1_5, int8_t b2_5, int8_t b3_0, int8_t b4_0);
 static FileOutputStream open_1(char* filename_3);
 static MaybeResult_0_int32 maybeReadLong_0(FileInputStream fis_3, State state_8);
+static int32_t elapsedMillis_0(TimePoint first_0, TimePoint second_0);
 static enum_Status_0 getStatus_1_int32(MaybeResult_0_int32 thiss_3);
 static MaybeResult_0_int32 maybeReadWord_0(FileInputStream fis_1, State state_6);
 static void println_0(char* s_6);
@@ -391,10 +396,10 @@ static void println_2(int32_t x_13);
 static bool isEmpty_3_int8(Option_0_int8 thiss_177);
 static MaybeResult_0_BitmapHeader_0 maybeReadBitmapHeader_0(FileInputStream fis_5, State state_10);
 static int32_t fix_0(Kernel_0* thiss_11, array_int8 channel_1, int32_t* width_4, int32_t* height_4, int32_t* index_3, int32_t x_29, int32_t side_0);
+static enum_Status_0 processImage_0(FileInputStream* fis_7, FileOutputStream* fos_5, State* state_12, Kernel_0* kernel_1, Image_0* src_2);
 static MaybeResult_0_Tuple_FileHeader_0_BitmapHeader_0 combine_0_FileHeader_0_BitmapHeader_0(MaybeResult_0_FileHeader_0 a_0, MaybeResult_0_BitmapHeader_0 b_0);
 static BitmapHeader_0 getResult_1_BitmapHeader_0(MaybeResult_0_BitmapHeader_0 thiss_2);
 static MaybeResult_0_int32 maybeReadDword_0(FileInputStream fis_2, State state_7);
-static enum_Status_0 process_0(FileInputStream fis_7, FileOutputStream fos_5, State state_12);
 static enum_Status_0 getStatus_1_BitmapHeader_0(MaybeResult_0_BitmapHeader_0 thiss_3);
 static MaybeResult_0_Tuple_int32_int32 combine_0_int32_int32(MaybeResult_0_int32 a_0, MaybeResult_0_int32 b_0);
 static bool writeDword_0(FileOutputStream fos_2, int32_t dword_0);
@@ -405,7 +410,6 @@ static State newState_0(void);
 static bool isDefined_2_Tuple_int32_int32(MaybeResult_0_Tuple_int32_int32 thiss_1);
 static bool write_4(FileOutputStream thiss_48, int8_t x_181);
 static bool isOpen_2(FileInputStream thiss_39);
-static enum_Status_0 processImage_0(FileInputStream* fis_7, FileOutputStream* fos_5, State* state_12, Kernel_0* kernel_1, Image_0* src_2);
 static int8_t get_4_int8(Option_0_int8 thiss_174);
 static bool isSuccess_1(enum_Status_0 thiss_0);
 
@@ -940,6 +944,12 @@ static Tuple_int32_int32_int32 getResult_1_Tuple_int32_int32_int32(MaybeResult_0
 }
 
 
+TimePoint now_0(void) {
+  return clock();
+}
+    
+
+
 static void print_0(char* s) {
   printf("%s", s);
 }
@@ -980,6 +990,57 @@ static bool writeBytes_0(FileOutputStream fos_0, int8_t byte_0, int32_t count_2)
             return false;
         }
     }
+}
+
+static enum_Status_0 process_0(FileInputStream fis_7, FileOutputStream fos_5, State state_12) {
+    int32_t norm_6 = 5;
+    int32_t norm_7 = 1;
+    int32_t leon_buffer_0[25] = { 0, 0, -1, 0, 0, 0, 0, -1, 0, 0, -1, -1, 8, -1, -1, 0, 0, -1, 0, 0, 0, 0, -1, 0, 0 };
+    array_int32 norm_5 = (array_int32) { .data = leon_buffer_0, .length = 25 };
+    array_int32* norm_8 = &norm_5;
+    Kernel_0 kernel_1 = (Kernel_0) { .size_2 = norm_6, .scale_0 = norm_7, .kernel_0 = (*norm_8) };
+    MaybeResult_0_FileHeader_0 fileHeaderRes_0 = maybeReadFileHeader_0(fis_7, state_12);
+    MaybeResult_0_BitmapHeader_0 bitmapHeaderRes_0 = maybeReadBitmapHeader_0(fis_7, state_12);
+    MaybeResult_0_Tuple_FileHeader_0_BitmapHeader_0 tmp_4 = combine_0_FileHeader_0_BitmapHeader_0(fileHeaderRes_0, bitmapHeaderRes_0);
+    enum_Status_0 norm_266;
+    if (tmp_4.tag == tag_Failure_0_Tuple_FileHeader_0_BitmapHeader_0) {
+        norm_266 = tmp_4.value.Failure_0_Tuple_FileHeader_0_BitmapHeader_0_v.status_0;
+    } else if (tmp_4.tag == tag_Result_0_Tuple_FileHeader_0_BitmapHeader_0 && tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._1.size_1 <= 54) {
+        norm_266 = tag_CorruptedDataError_0;
+    } else if (tmp_4.tag == tag_Result_0_Tuple_FileHeader_0_BitmapHeader_0) {
+        log_1(tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._1);
+        log_2(tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._2);
+        int32_t toSkip_0 = tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._1.offset_0 - 32;
+        bool success_2 = skipBytes_0(fis_7, toSkip_0, state_12);
+        if (!success_2) {
+            norm_266 = tag_CorruptedDataError_0;
+        } else if (tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._2.width_0 > 512 || tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._2.height_0 > 512) {
+            norm_266 = tag_ImageTooBigError_0;
+        } else if (tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._2.width_0 * tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._2.height_0 > 262144) {
+            norm_266 = tag_ImageTooBigError_0;
+        } else {
+            int8_t leon_buffer_1[262144] = { 0 };
+            array_int8 norm_115 = (array_int8) { .data = leon_buffer_1, .length = 262144 };
+            array_int8* norm_118 = &norm_115;
+            int8_t leon_buffer_2[262144] = { 0 };
+            array_int8 norm_116 = (array_int8) { .data = leon_buffer_2, .length = 262144 };
+            array_int8* norm_119 = &norm_116;
+            int8_t leon_buffer_3[262144] = { 0 };
+            array_int8 norm_117 = (array_int8) { .data = leon_buffer_3, .length = 262144 };
+            array_int8* norm_120 = &norm_117;
+            int32_t norm_121 = tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._2.width_0;
+            int32_t norm_122 = tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._2.height_0;
+            Image_0 image_2 = (Image_0) { .r_0 = (*norm_118), .g_0 = (*norm_119), .b_3 = (*norm_120), .w_0 = norm_121, .h_0 = norm_122 };
+            enum_Status_0 status_27 = loadImageData_0(fis_7, &image_2, state_12);
+            if (isSuccess_1(status_27)) {
+                norm_266 = processImage_0(&fis_7, &fos_5, &state_12, &kernel_1, &image_2);
+            } else {
+                norm_266 = status_27;
+            }
+        }
+    }
+    enum_Status_0 status_25 = norm_266;
+    return status_25;
 }
 
 static MaybeResult_0_Tuple_int32_int32_int32 combine_1_int32_int32_int32(MaybeResult_0_int32 a_1, MaybeResult_0_int32 b_1, MaybeResult_0_int32 c_0) {
@@ -1054,6 +1115,12 @@ static MaybeResult_0_int32 maybeReadLong_0(FileInputStream fis_3, State state_8)
         return (MaybeResult_0_int32) { .tag = tag_Failure_0_int32, .value = (union_MaybeResult_0_int32) { .Failure_0_int32_v = (Failure_0_int32) { .status_0 = tag_ReadError_0 } } };
     }
 }
+
+
+int32_t elapsedMillis_0(TimePoint first, TimePoint second) {
+  return 1000 * (second - first) / CLOCKS_PER_SEC; // mind the order of operations!
+}
+    
 
 static enum_Status_0 getStatus_1_int32(MaybeResult_0_int32 thiss_3) {
     return thiss_3.value.Failure_0_int32_v.status_0;
@@ -1244,6 +1311,29 @@ static int32_t fix_0(Kernel_0* thiss_11, array_int8 channel_1, int32_t* width_4,
     return clamp_0(x_29, 0, side_0 - 1);
 }
 
+static enum_Status_0 processImage_0(FileInputStream* fis_7, FileOutputStream* fos_5, State* state_12, Kernel_0* kernel_1, Image_0* src_2) {
+    TimePoint t1_0 = now_0();
+    int8_t leon_buffer_4[262144] = { 0 };
+    array_int8 norm_145 = (array_int8) { .data = leon_buffer_4, .length = 262144 };
+    array_int8* norm_148 = &norm_145;
+    int8_t leon_buffer_5[262144] = { 0 };
+    array_int8 norm_146 = (array_int8) { .data = leon_buffer_5, .length = 262144 };
+    array_int8* norm_149 = &norm_146;
+    int8_t leon_buffer_6[262144] = { 0 };
+    array_int8 norm_147 = (array_int8) { .data = leon_buffer_6, .length = 262144 };
+    array_int8* norm_150 = &norm_147;
+    int32_t norm_151 = src_2->w_0;
+    int32_t norm_152 = src_2->h_0;
+    Image_0 dest_1 = (Image_0) { .r_0 = (*norm_148), .g_0 = (*norm_149), .b_3 = (*norm_150), .w_0 = norm_151, .h_0 = norm_152 };
+    apply_14(kernel_1, src_2, &dest_1);
+    TimePoint t2_0 = now_0();
+    int32_t ms_0 = elapsedMillis_0(t1_0, t2_0);
+    print_0("Computation time: ");
+    print_2(ms_0);
+    println_0("ms.");
+    return saveImage_0(*fos_5, &dest_1);
+}
+
 static MaybeResult_0_Tuple_FileHeader_0_BitmapHeader_0 combine_0_FileHeader_0_BitmapHeader_0(MaybeResult_0_FileHeader_0 a_0, MaybeResult_0_BitmapHeader_0 b_0) {
     if (isDefined_2_FileHeader_0(a_0)) {
         if (isDefined_2_BitmapHeader_0(b_0)) {
@@ -1320,57 +1410,6 @@ static MaybeResult_0_int32 maybeReadDword_0(FileInputStream fis_2, State state_7
     } else {
         return (MaybeResult_0_int32) { .tag = tag_Failure_0_int32, .value = (union_MaybeResult_0_int32) { .Failure_0_int32_v = (Failure_0_int32) { .status_0 = tag_ReadError_0 } } };
     }
-}
-
-static enum_Status_0 process_0(FileInputStream fis_7, FileOutputStream fos_5, State state_12) {
-    int32_t norm_6 = 5;
-    int32_t norm_7 = 25;
-    int32_t leon_buffer_0[25] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-    array_int32 norm_5 = (array_int32) { .data = leon_buffer_0, .length = 25 };
-    array_int32* norm_8 = &norm_5;
-    Kernel_0 kernel_1 = (Kernel_0) { .size_2 = norm_6, .scale_0 = norm_7, .kernel_0 = (*norm_8) };
-    MaybeResult_0_FileHeader_0 fileHeaderRes_0 = maybeReadFileHeader_0(fis_7, state_12);
-    MaybeResult_0_BitmapHeader_0 bitmapHeaderRes_0 = maybeReadBitmapHeader_0(fis_7, state_12);
-    MaybeResult_0_Tuple_FileHeader_0_BitmapHeader_0 tmp_4 = combine_0_FileHeader_0_BitmapHeader_0(fileHeaderRes_0, bitmapHeaderRes_0);
-    enum_Status_0 norm_266;
-    if (tmp_4.tag == tag_Failure_0_Tuple_FileHeader_0_BitmapHeader_0) {
-        norm_266 = tmp_4.value.Failure_0_Tuple_FileHeader_0_BitmapHeader_0_v.status_0;
-    } else if (tmp_4.tag == tag_Result_0_Tuple_FileHeader_0_BitmapHeader_0 && tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._1.size_1 <= 54) {
-        norm_266 = tag_CorruptedDataError_0;
-    } else if (tmp_4.tag == tag_Result_0_Tuple_FileHeader_0_BitmapHeader_0) {
-        log_1(tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._1);
-        log_2(tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._2);
-        int32_t toSkip_0 = tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._1.offset_0 - 32;
-        bool success_2 = skipBytes_0(fis_7, toSkip_0, state_12);
-        if (!success_2) {
-            norm_266 = tag_CorruptedDataError_0;
-        } else if (tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._2.width_0 > 512 || tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._2.height_0 > 512) {
-            norm_266 = tag_ImageTooBigError_0;
-        } else if (tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._2.width_0 * tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._2.height_0 > 262144) {
-            norm_266 = tag_ImageTooBigError_0;
-        } else {
-            int8_t leon_buffer_1[262144] = { 0 };
-            array_int8 norm_115 = (array_int8) { .data = leon_buffer_1, .length = 262144 };
-            array_int8* norm_118 = &norm_115;
-            int8_t leon_buffer_2[262144] = { 0 };
-            array_int8 norm_116 = (array_int8) { .data = leon_buffer_2, .length = 262144 };
-            array_int8* norm_119 = &norm_116;
-            int8_t leon_buffer_3[262144] = { 0 };
-            array_int8 norm_117 = (array_int8) { .data = leon_buffer_3, .length = 262144 };
-            array_int8* norm_120 = &norm_117;
-            int32_t norm_121 = tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._2.width_0;
-            int32_t norm_122 = tmp_4.value.Result_0_Tuple_FileHeader_0_BitmapHeader_0_v.result_0._2.height_0;
-            Image_0 image_2 = (Image_0) { .r_0 = (*norm_118), .g_0 = (*norm_119), .b_3 = (*norm_120), .w_0 = norm_121, .h_0 = norm_122 };
-            enum_Status_0 status_27 = loadImageData_0(fis_7, &image_2, state_12);
-            if (isSuccess_1(status_27)) {
-                norm_266 = processImage_0(&fis_7, &fos_5, &state_12, &kernel_1, &image_2);
-            } else {
-                norm_266 = status_27;
-            }
-        }
-    }
-    enum_Status_0 status_25 = norm_266;
-    return status_25;
 }
 
 static enum_Status_0 getStatus_1_BitmapHeader_0(MaybeResult_0_BitmapHeader_0 thiss_3) {
@@ -1500,23 +1539,6 @@ static bool isOpen_2(FILE* this) {
   return this != NULL;
 }
     
-
-static enum_Status_0 processImage_0(FileInputStream* fis_7, FileOutputStream* fos_5, State* state_12, Kernel_0* kernel_1, Image_0* src_2) {
-    int8_t leon_buffer_4[262144] = { 0 };
-    array_int8 norm_145 = (array_int8) { .data = leon_buffer_4, .length = 262144 };
-    array_int8* norm_148 = &norm_145;
-    int8_t leon_buffer_5[262144] = { 0 };
-    array_int8 norm_146 = (array_int8) { .data = leon_buffer_5, .length = 262144 };
-    array_int8* norm_149 = &norm_146;
-    int8_t leon_buffer_6[262144] = { 0 };
-    array_int8 norm_147 = (array_int8) { .data = leon_buffer_6, .length = 262144 };
-    array_int8* norm_150 = &norm_147;
-    int32_t norm_151 = src_2->w_0;
-    int32_t norm_152 = src_2->h_0;
-    Image_0 dest_1 = (Image_0) { .r_0 = (*norm_148), .g_0 = (*norm_149), .b_3 = (*norm_150), .w_0 = norm_151, .h_0 = norm_152 };
-    apply_14(kernel_1, src_2, &dest_1);
-    return saveImage_0(*fos_5, &dest_1);
-}
 
 static int8_t get_4_int8(Option_0_int8 thiss_174) {
     return thiss_174.value.Some_0_int8_v.v_14;

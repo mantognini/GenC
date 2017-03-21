@@ -13,7 +13,7 @@ import leon.util.{ TimePoint }
 import scala.annotation.tailrec
 
 /**
- * Some basic image processing.
+ * Some basic image processing; this version uses VLA.
  *
  * General NOTEs
  * -------------
@@ -25,8 +25,9 @@ import scala.annotation.tailrec
  *
  *  See https://msdn.microsoft.com/en-us/library/dd183391(v=vs.85).aspx
  *  for the full documentation.
+ *
  */
-object ImageProcessing {
+object ImageProcessingVLA {
 
   /**********************************************************************
    *                                                      Constants     *
@@ -39,12 +40,6 @@ object ImageProcessing {
   val DwordSize = 4 // 32 bits, unsigned
   @inline
   val LongSize  = 4 // 32 bits, signed
-
-  // Maximum size of images
-  @inline
-  val MaxSize        = 512
-  @inline
-  val MaxSurfaceSize = 512 * 512 // handwritten here to inline the values
 
 
   /**********************************************************************
@@ -90,6 +85,7 @@ object ImageProcessing {
   case class InvalidBitmapHeaderError() extends Status
   case class CorruptedDataError()       extends Status
   case class ImageTooBigError()         extends Status
+  case class NoImageError()             extends Status
   case class WriteError()               extends Status
   case class NotImplementedError()      extends Status
 
@@ -102,7 +98,8 @@ object ImageProcessing {
     case InvalidBitmapHeaderError() => StdOut.println("bitmap format unsupported");        5
     case CorruptedDataError()       => StdOut.println("the file appears to be corrupted"); 6
     case ImageTooBigError()         => StdOut.println("the image is too big");             7
-    case WriteError()               => StdOut.println("couldn't write image");             8
+    case NoImageError()             => StdOut.println("the image is empty");               8
+    case WriteError()               => StdOut.println("couldn't write image");             9
     case NotImplementedError()      => StdOut.println("not yet implemented");              99
   }
 
@@ -227,26 +224,19 @@ object ImageProcessing {
    */
   case class Image(r: Array[Byte], g: Array[Byte], b: Array[Byte], w: Int, h: Int) {
     require(
-      r.length == MaxSurfaceSize &&
-      g.length == MaxSurfaceSize &&
-      b.length == MaxSurfaceSize &&
-      inRange(w, 0, MaxSize) &&
-      inRange(h, 0, MaxSize) &&
-      inRange(w * h, 0, MaxSurfaceSize)
+      r.length == g.length && r.length == b.length && r.length == w * h && 0 < w && 0 < h
     )
   }
 
   @inline // <- in order to "return" the image
   def createImage(width: Int, height: Int) = {
-    require(
-      inRange(width,  0, MaxSize) &&
-      inRange(height, 0, MaxSize) &&
-      inRange(width * height, 0, MaxSurfaceSize)
-    )
+    require(0 < width && 0 < height)
+    // NOTE: this variant of the case study uses VLA!
+    val surface = width * height
     Image(
-      Array.fill[Byte](MaxSurfaceSize)(0),
-      Array.fill[Byte](MaxSurfaceSize)(0),
-      Array.fill[Byte](MaxSurfaceSize)(0),
+      Array.fill[Byte](surface)(0),
+      Array.fill[Byte](surface)(0),
+      Array.fill[Byte](surface)(0),
       width, height
     )
   }
@@ -486,10 +476,7 @@ object ImageProcessing {
       }
 
       i += 1
-    }) invariant (
-      inRange(size, 0, MaxSurfaceSize) &&
-      inRange(i, 0, size)
-    )
+    }) invariant (inRange(i, 0, size))
 
     status
   }
@@ -533,7 +520,7 @@ object ImageProcessing {
       (while (success && i < count) {
         success = fos.write(image.r(i)) && fos.write(image.g(i)) && fos.write(image.b(i))
         i += 1
-      }) invariant (inRange(count, 0, MaxSurfaceSize) && inRange(i, 0, count))
+      }) invariant (inRange(i, 0, count))
 
       success
     }
@@ -570,7 +557,7 @@ object ImageProcessing {
 
   case class Kernel(size: Int, scale: Int, kernel: Array[Int]) {
     require(
-      inRange(size, 0, MaxSize) &&
+      0 < size &&
       size % 2 == 1 &&
       size * size == kernel.length &&
       scale != 0 && scale != -1 // avoid division by zero and some particular overflow (*)
@@ -584,11 +571,9 @@ object ImageProcessing {
      */
     private def apply(channel: Array[Byte], width: Int, height: Int, index: Int): Byte = {
       require(
-        channel.length == MaxSurfaceSize &&
-        inRange(index, 0, channel.length) &&
-        inRange(width, 1, MaxSize) &&
-        inRange(height, 1, MaxSize) &&
-        inRange(width * height, 0, MaxSurfaceSize)
+        0 < width && 0 < height &&
+        channel.length == width * height &&
+        inRange(index, 0, channel.length)
       )
 
       // Clamping helper
@@ -641,7 +626,10 @@ object ImageProcessing {
     }
 
     def apply(src: Image, dest: Image): Unit = {
-      require(src.w == dest.w && src.h == dest.h)
+      require(
+        src.w != 0 && src.h != 0 &&
+        src.w == dest.w && src.h == dest.h
+      )
 
       val size = src.w * src.h
       var i = 0
@@ -687,7 +675,7 @@ object ImageProcessing {
      * val kernel = Kernel(3, 1, Array(1, 1, 1, 1, 2, 1, 1, 1, 1))
      */
 
-		/*
+    /*
      * // Edges
      * val kernel = Kernel(5, 1, Array(
      *   0,  0, -1,  0,  0,
@@ -696,7 +684,7 @@ object ImageProcessing {
      *   0,  0, -1,  0,  0,
      *   0,  0, -1,  0,  0
      * ))
-		 */
+     */
 
     /* // Identity
      * val kernel = Kernel(5, 1, Array(
@@ -778,9 +766,8 @@ object ImageProcessing {
         val success = skipBytes(fis, toSkip)
 
         // Break test of size so we avoid overflows.
-        if (!success)                                       CorruptedDataError()
-        else if (bh.width > MaxSize || bh.height > MaxSize) ImageTooBigError()
-        else if (bh.width * bh.height > MaxSurfaceSize)     ImageTooBigError()
+        if (!success) CorruptedDataError()
+        else if (bh.width == 0 || bh.height == 0) NoImageError()
         else {
           val image  = createImage(bh.width, bh.height)
           val status = loadImageData(fis, image)
