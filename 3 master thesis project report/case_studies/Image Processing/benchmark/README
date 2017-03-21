@@ -1,0 +1,87 @@
+Image Processing Benchmark
+==========================
+
+Running run.fish will produce a runtimes.csv files with 50 runtime samples for
+each kernel / input / version combinations. Using the Jupyter notebook
+runtimes_explorer.ipynb, this CSV file is processed and box plots are
+generated for each combinations. See the produced plot.pdf.
+
+The benchmark is based on a VLA version of the source code available in the
+parent directory. It was modified so that every input file is processed by
+every kernel. Additionally, in order to let the JVM runtime optimiser kick in,
+the processing is run 50 times and the results are displayed using box plots to
+extract the quartiles and the median runtimes.
+
+
+Inputs
+------
+
+Several inputs are used for this benchmark, each having a different size.
+Here they are sorted from the smallest to the largest:
+
+input3.bmp      118  Kb
+input6.bmp      136  Kb
+input4.bmp      216  Kb
+input2.bmp      433  Kb
+input1.bmp      541  Kb
+input5.bmp      577  Kb
+input7.bmp      3.5  Mb
+input7big.bmp   69   MB
+
+The largest being 6000 x 4000 pixels.
+
+
+Kernels
+-------
+
+identity: 1x1 matrix
+smooth:   3x3 matrix
+emboss:   3x3 matrix
+blur:     5x5 matrix
+edges:    5x5 matrix
+sharpen:  5x5 matrix
+
+
+Versions
+--------
+
+ - scala: the Scala source code executed on a JVM.
+ - clang.0, clang.1 and clang.3: each corresponds to the generated C code
+   compiled with clang and -O0, -O1 or -O3, respectively.
+ - gcc.0, gcc.1 and gcc.3: the same but with clang.
+
+
+Software
+--------
+
+The following softwares and their respective version were used for the benchmark:
+
+ - Scala compiler version 2.11.6 -- Copyright 2002-2013, LAMP/EPFL
+ - Java(TM) SE Runtime Environment (build 1.8.0_121-b13)
+   Java HotSpot(TM) 64-Bit Server VM (build 25.121-b13, mixed mode)
+ - clang version 3.8.0-2ubuntu4 (tags/RELEASE_380/final)
+ - gcc version 5.4.0 20160609 (Ubuntu 5.4.0-6ubuntu1~16.04.4)
+ - Linux 4.8.0-42-generic x86_64
+
+
+Hardware
+--------
+
+The benchmark was run on the following hardware spec:
+
+ - processor      Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
+ - memory         4x 16GiB DIMM Synchronous 2133 MHz
+
+
+Results
+-------
+
+ + Compared to clang.0 and gcc.0, the scala version is often at least twice as fast.
+ + However, when the C compilers are instructed to optimise the produced assembly,
+   the scala version is significantly slower, with speedups close to 10x for gcc.3.
+ + It appears that the size of the input as no significant impact on the speedups
+   factors.
+ + For this benchmark, we see that gcc is performing more aggressive optimisations
+   than clang at the -O3 level.
+
+

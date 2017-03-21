@@ -2,7 +2,7 @@
 
 import leon.annotation._
 import leon.lang._
-// import leon.lang.StaticChecks._ // uncomment this to disable runtime checks on the JVM
+import leon.lang.StaticChecks._
 
 import leon.io.{
   FileInputStream => FIS,
@@ -14,7 +14,7 @@ import leon.util.{ TimePoint }
 import scala.annotation.tailrec
 
 /**
- * Some basic image processing; this version uses VLA.
+ * Some basic image processing; this version uses VLA and is designed for benchmarks.
  *
  * General NOTEs
  * -------------
@@ -27,12 +27,22 @@ import scala.annotation.tailrec
  *  See https://msdn.microsoft.com/en-us/library/dd183391(v=vs.85).aspx
  *  for the full documentation.
  *
+ *  For benchmarks, the each images are loaded once, then for each filter
+ *  the image is processed `BenchmarkRuns` times. Each runs prints:
+ *
+ *  input;kernel;runtime[ms]
+ *
+ *  This program is expected to be run from `run.fish`.
  */
-object ImageProcessingVLA {
+object ImageProcessingVLABenchmark {
 
   /**********************************************************************
    *                                                      Constants     *
    **********************************************************************/
+
+  @inline
+  val BenchmarkRuns = 50
+
 
   // Sizes in bytes of several Windows numerical types
   @inline
@@ -446,10 +456,6 @@ object ImageProcessingVLA {
       case Failure(status)                  => Failure[BitmapHeader](status)
       case Result((w, h, bpp, compression)) =>
         if (w < 0 || h < 0 || bpp != 24 || compression != 0) {
-          log("width", w)
-          log("height", h)
-          log("bpp", bpp)
-          log("compression", compression)
           Failure(InvalidBitmapHeaderError())
         } else Result(BitmapHeader(w, h))
     }
@@ -469,7 +475,6 @@ object ImageProcessingVLA {
 
       if (rOpt.isEmpty || gOpt.isEmpty || bOpt.isEmpty) {
         status = ReadError()
-        log("stopped reading data abruptly after", i)
       } else {
         image.r(i) = rOpt.get
         image.g(i) = gOpt.get
@@ -528,27 +533,6 @@ object ImageProcessingVLA {
 
     if (writeFileHeader() && writeBitmapHeader() && writeImage()) Success()
     else WriteError()
-  }
-
-
-  /**********************************************************************
-   *                                             Logging Facilities     *
-   **********************************************************************/
-
-  def log(msg: String, x: Int) {
-    StdOut.print(msg)
-    StdOut.print(": ")
-    StdOut.println(x)
-  }
-
-  def log(h: FileHeader) {
-    log("size", h.size)
-    log("offset", h.offset)
-  }
-
-  def log(h: BitmapHeader) {
-    log("width", h.width)
-    log("height", h.height)
   }
 
 
@@ -654,79 +638,127 @@ object ImageProcessingVLA {
   def main(args: Array[String]): Unit = _main()
 
   def _main(): Int = {
-    implicit val state = leon.io.newState
-    val input  = FIS.open("input.bmp")
-    val output = FOS.open("output.bmp")
+    val res = benchmark()
 
-    val status =
-      if (input.isOpen && output.isOpen) process(input, output)
-      else OpenError()
+    if (res != 0) StdOut.println("ERROR")
 
-    output.close()
-    input.close()
-
-    statusCode(status)
+    res
   }
 
-  def process(fis: FIS, fos: FOS)(implicit state: leon.io.State): Status = {
-    require(fis.isOpen && fos.isOpen)
+  def benchmark(): Int = {
+    // Note: GenC currently doesn't support string manipulations so
+    //       we need to hard code some literals.
+    implicit val state = leon.io.newState
+    benchmarkKernels("../../../input1.bmp", "output1id.bmp", "output1smooth.bmp", "output1emboss.bmp", "output1blur.bmp", "output1edges.bmp", "output1sharpen.bmp") +
+    benchmarkKernels("../../../input2.bmp", "output2id.bmp", "output2smooth.bmp", "output2emboss.bmp", "output2blur.bmp", "output2edges.bmp", "output2sharpen.bmp") +
+    benchmarkKernels("../../../input3.bmp", "output3id.bmp", "output3smooth.bmp", "output3emboss.bmp", "output3blur.bmp", "output3edges.bmp", "output3sharpen.bmp") +
+    benchmarkKernels("../../../input4.bmp", "output4id.bmp", "output4smooth.bmp", "output4emboss.bmp", "output4blur.bmp", "output4edges.bmp", "output4sharpen.bmp") +
+    benchmarkKernels("../../../input5.bmp", "output5id.bmp", "output5smooth.bmp", "output5emboss.bmp", "output5blur.bmp", "output5edges.bmp", "output5sharpen.bmp") +
+    benchmarkKernels("../../../input6.bmp", "output6id.bmp", "output6smooth.bmp", "output6emboss.bmp", "output6blur.bmp", "output6edges.bmp", "output6sharpen.bmp") +
+    benchmarkKernels("../../../input7.bmp", "output7id.bmp", "output7smooth.bmp", "output7emboss.bmp", "output7blur.bmp", "output7edges.bmp", "output7sharpen.bmp") +
+    benchmarkKernels("../../../input7big.bmp", "output7bigid.bmp", "output7bigsmooth.bmp", "output7bigemboss.bmp", "output7bigblur.bmp", "output7bigedges.bmp", "output7bigsharpen.bmp")
+  }
 
-    /*
-     * // Smooth kernel
-     * val kernel = Kernel(3, 1, Array(1, 1, 1, 1, 2, 1, 1, 1, 1))
-     */
+  // return 0 on success
+  def benchmarkKernels(in: String,
+                       outId: String, outSmooth: String, outEmboss: String,
+                       outBlur: String, outEdges: String, outSharpen: String
+                      )(implicit state: leon.io.State): Int = {
+    val input         = FIS.open(in)
+    val outputId      = FOS.open(outId)
+    val outputSmooth  = FOS.open(outSmooth)
+    val outputEmboss  = FOS.open(outEmboss)
+    val outputBlur    = FOS.open(outBlur)
+    val outputEdges   = FOS.open(outEdges)
+    val outputSharpen = FOS.open(outSharpen)
 
-    /*
-     * // Edges
-     * val kernel = Kernel(5, 1, Array(
-     *   0,  0, -1,  0,  0,
-     *   0,  0, -1,  0,  0,
-     *  -1, -1,  8, -1, -1,
-     *   0,  0, -1,  0,  0,
-     *   0,  0, -1,  0,  0
-     * ))
-     */
+    val kIdentity = Kernel(1, 1, Array(
+      1
+    ))
 
-    /* // Identity
-     * val kernel = Kernel(5, 1, Array(
-     *   0,  0,  0,  0,  0,
-     *   0,  0,  0,  0,  0,
-     *   0,  0,  1,  0,  0,
-     *   0,  0,  0,  0,  0,
-     *   0,  0,  0,  0,  0
-     * ))
-     */
+    val kSmooth = Kernel(3, 10, Array(
+      1, 1, 1,
+      1, 2, 1,
+      1, 1, 1
+    ))
 
-    /* // Sharpen
-     * val kernel = Kernel(5, 8, Array(
-     *   -1, -1, -1, -1, -1,
-     *   -1,  2,  2,  2, -1,
-     *   -1,  2,  8,  2, -1,
-     *   -1,  2,  2,  2, -1,
-     *   -1, -1, -1, -1, -1
-     * ))
-     */
-
-    /*
-     * // Blur
-     * val kernel = Kernel(5, 25, Array(
-     *   1, 1, 1, 1, 1,
-     *   1, 1, 1, 1, 1,
-     *   1, 1, 1, 1, 1,
-     *   1, 1, 1, 1, 1,
-     *   1, 1, 1, 1, 1
-     * ))
-     */
-
-    // Emboss
-    val kernel = Kernel(3, 1, Array(
+    val kEmboss = Kernel(3, 1, Array(
       -2, -1,  0,
       -1,  1,  1,
        0,  1,  2
     ))
 
+    val kBlur = Kernel(5, 25, Array(
+      1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1,
+      1, 1, 1, 1, 1
+    ))
 
-    def processImage(src: Image): Status = {
+    val kEdges = Kernel(5, 1, Array(
+      0,  0, -1,  0,  0,
+      0,  0, -1,  0,  0,
+     -1, -1,  8, -1, -1,
+      0,  0, -1,  0,  0,
+      0,  0, -1,  0,  0
+    ))
+
+    val kSharpen = Kernel(5, 8, Array(
+      -1, -1, -1, -1, -1,
+      -1,  2,  2,  2, -1,
+      -1,  2,  8,  2, -1,
+      -1,  2,  2,  2, -1,
+      -1, -1, -1, -1, -1
+    ))
+
+    if (input.isOpen && outputId.isOpen && outputSmooth.isOpen && outputEmboss.isOpen && outputBlur.isOpen && outputEdges.isOpen && outputSharpen.isOpen) {
+
+      val res = loadHeaders(input) match {
+        case Failure(_) => 1
+        case Result((w, h)) =>
+          val image  = createImage(w, h)
+          val status = loadImageData(input, image)
+          if (status.isSuccess) {
+
+            // Image loaded successfully, ready for benchmark!
+            process(in, image, "id",      kIdentity, outputId)     +
+            process(in, image, "smooth",  kSmooth,   outputSmooth) +
+            process(in, image, "emboss",  kEmboss,   outputEmboss) +
+            process(in, image, "blur",    kBlur,     outputBlur)   +
+            process(in, image, "edges",   kEdges,    outputEdges)  +
+            process(in, image, "sharpen", kSharpen,  outputSharpen)
+
+          } else 1
+      }
+
+      outputSharpen.close()
+      outputEdges.close()
+      outputBlur.close()
+      outputEmboss.close()
+      outputSmooth.close()
+      outputId.close()
+      input.close()
+
+      res
+    } else 1
+  }
+
+  // return 0 on success
+  def process(in: String, src: Image, filter: String, kernel: Kernel, fos: FOS)(implicit state: leon.io.State): Int = {
+    require(fos.isOpen)
+
+    /*
+     * StdOut.print("Processing ")
+     * StdOut.print(in)
+     * StdOut.print(" with filter ")
+     * StdOut.println(filter)
+     */
+
+    var status = 0
+
+    var i = 0
+    while (i < BenchmarkRuns) {
       // Compute the processing time, without I/Os
       val t1 = TimePoint.now()
 
@@ -735,19 +767,34 @@ object ImageProcessingVLA {
 
       val t2 = TimePoint.now()
       val ms = TimePoint.elapsedMillis(t1, t2)
-      StdOut.print("Computation time: ")
-      StdOut.print(ms)
-      StdOut.println("ms.")
 
-      saveImage(fos, dest)
+      // CSV output
+      StdOut.print(in)
+      StdOut.print(";")
+      StdOut.print(filter)
+      StdOut.print(";")
+      StdOut.println(ms)
+
+      i += 1
+
+      // Save the image on the last run
+      if (i == BenchmarkRuns) {
+        status = if (saveImage(fos, dest).isSuccess) 0 else 1
+      }
     }
+
+    status
+  }
+
+  def loadHeaders(fis: FIS)(implicit state: leon.io.State): MaybeResult[(Int, Int)] = {
+    require(fis.isOpen)
 
     val fileHeaderRes   = maybeReadFileHeader(fis)
     val bitmapHeaderRes = maybeReadBitmapHeader(fis)
 
-    val status = combine(fileHeaderRes, bitmapHeaderRes) match {
+    combine(fileHeaderRes, bitmapHeaderRes) match {
       case Failure(status) =>
-        status
+        Failure(status)
 
       /*
        * Report an error when the file is corrupted, i.e. it's too small.
@@ -756,28 +803,18 @@ object ImageProcessingVLA {
        * point of this example.
        */
       case Result((fh, bh)) if fh.size <= 14 + 40 =>
-        CorruptedDataError()
+        Failure(CorruptedDataError())
 
       case Result((fh, bh)) =>
-        log(fh)
-        log(bh)
-
         // Skip bytes until the start of the bitmap data
         val toSkip  = fh.offset - (14 + 18) // some bytes were already eaten
         val success = skipBytes(fis, toSkip)
 
         // Break test of size so we avoid overflows.
-        if (!success) CorruptedDataError()
-        else if (bh.width == 0 || bh.height == 0) NoImageError()
-        else {
-          val image  = createImage(bh.width, bh.height)
-          val status = loadImageData(fis, image)
-          if (status.isSuccess) processImage(image)
-          else                  status
-        }
+        if (!success) Failure(CorruptedDataError())
+        else if (bh.width == 0 || bh.height == 0) Failure(NoImageError())
+        else Result((bh.width, bh.height))
     }
-
-    status
   }
 
 }

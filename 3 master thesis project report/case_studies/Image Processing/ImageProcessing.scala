@@ -2,6 +2,7 @@
 
 import leon.annotation._
 import leon.lang._
+// import leon.lang.StaticChecks._ // uncomment this to disable runtime checks on the JVM
 
 import leon.io.{
   FileInputStream => FIS,
