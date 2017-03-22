@@ -1,0 +1,2 @@
+input7big.bmp filter=lfs diff=lfs merge=lfs -text
+output7big* filter=lfs diff=lfs merge=lfs -text
