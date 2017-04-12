@@ -19,13 +19,13 @@ Inputs
 Several inputs are used for this benchmark, each having a different size.
 Here they are sorted from the smallest to the largest:
 
-input3.bmp      118  Kb
-input6.bmp      136  Kb
-input4.bmp      216  Kb
-input2.bmp      433  Kb
-input1.bmp      541  Kb
-input5.bmp      577  Kb
-input7.bmp      3.5  Mb
+input3.bmp      118  KB
+input6.bmp      136  KB
+input4.bmp      216  KB
+input2.bmp      433  KB
+input1.bmp      541  KB
+input5.bmp      577  KB
+input7.bmp      3.5  MB
 input7big.bmp   69   MB
 
 The largest being 6000 x 4000 pixels.
