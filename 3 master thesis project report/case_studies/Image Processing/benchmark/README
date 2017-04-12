@@ -56,7 +56,7 @@ Software
 
 The following softwares and their respective version were used for the benchmark:
 
- - Scala compiler version 2.11.6 -- Copyright 2002-2013, LAMP/EPFL
+ - Scala compiler/code runner version 2.11.6 -- Copyright 2002-2013, LAMP/EPFL
  - Java(TM) SE Runtime Environment (build 1.8.0_121-b13)
    Java HotSpot(TM) 64-Bit Server VM (build 25.121-b13, mixed mode)
  - clang version 3.8.0-2ubuntu4 (tags/RELEASE_380/final)

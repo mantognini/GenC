@@ -3094,7 +3094,7 @@ function should be tested.
 
 In combination with \InlineS{leon.lang.Option}, \InlineS{MabyeResult} were used
 in this case study to improve the safety of the programs: for every cast or
-pattern matching, Leon detect potential misuse of the language that can result
+pattern matching, Leon detects potential misuses of the language that can result
 in runtime errors or missing branches.
 
 One important fact about BMP format is that integers are stored in little endian
@@ -3108,7 +3108,7 @@ representation, one has to add 65536 to ``negative'' numbers.
 specific example of \emph{WORD}. The print operation for \emph{WORD}s is shown
 in \RefCode{lst:writeWord}. Additionally, we wrote a small proof, which Leon is
 capable of verifying, showing that our conversions from little to big endian as
-well as from signed to unsigned are consistent:
+well as from signed to unsigned are consistent for every two bytes:
 \begin{ShortCode}{Leon}
 private def lemmaWord(byte1: Byte, byte2: Byte): Boolean = {
   val word = constructWord(byte1, byte2)
@@ -3169,7 +3169,7 @@ starts in the file, loading the pixels is fairly easy: the RGB components of
 each pixel are simply interleaved so that a usual \InlineS{while} loop is enough
 to read them one after the other. Furthermore, saving the modified image back to
 the disk involves no special computation: it suffices to check that all output
-operations succeeded.
+operations have succeeded.
 
 \subsection{Image Manipulation Using Kernels}
 
@@ -3190,7 +3190,7 @@ val kernel = Kernel(size = 5, scale = 8, Array(
 \end{ShortCode}
 
 In other words, a given pixel will be modulated according to its neighbouring
-and the kernel matrix, which represent the weight of each pixels in the vicinity
+and the kernel matrix, which represents the weight of each pixels in the vicinity
 of the source pixel. By changing only the kernel, one can produce various
 effects. \RefFig{fig:kernels} shows three examples, all of which were generated
 using the C code produced by \GenC for this case study.
@@ -3255,7 +3255,7 @@ arithmetic operations are valid, with two exceptions: the \InlineS{+=} and
 \InlineS{*} on line 37 of \RefCode{lst:kernelApply}.
 
 In order to prove that those two operations do not overflow, one should probably
-add some constraint on the kernel size and its matrix content. For example, if
+add some constraints on the kernel size and its matrix content. For example, if
 the size is assured to be at most 5 by 5 and all values of the matrix in the
 range $[-10, 10]$, then only 16 bits are required to compute the new pixel
 values before scaling it down as $5 * 5 * 10 * 256 < 2^{16}$. From this, we can
@@ -3312,6 +3312,116 @@ case class Kernel(size: Int, scale: Int, kernel: Array[Int]) {
 }
 \end{Code}
 \lstset{numbers=none}
+
+\subsection{Runtime Performances}
+
+For this benchmark we compared exclusively the computational runtime of the
+application, without taking into account the input and output processing times,
+using several runtime environments. First, as a baseline, we ran the original
+Scala source code on a JVM. Then, we used Leon and \GenC to convert it into C
+code and generated four native versions using both Clang and GCC compilers, and
+the \Inline{-O0} and \Inline{-O3} optimisation levels. In order to allow the JVM
+to perform optimisation at runtime, each measurement was performed 50 times to
+let the JIT compiler kick in. However, we did not attempt to optimise the
+benchmark and exclude measures impacted by the garbage collector because we
+strongly believe it is part of the language environment and therefore should be
+accounted for.
+
+To carry out this experiment, we set up a small API for benchmarks with an equivalent
+implementation for C and Scala: it allows to measure in milliseconds the elapsed
+time between two arbitrary points of a program. Given an source image, we
+measured the time needed to allocate the memory for the output image and apply a
+given kernel on the input image.
+
+The benchmark was run on kernels and images of different sizes. To accommodate
+for large images we used \emph{Variable Length Arrays}, despite being not
+recommended by the MISRA guidelines, and increased the maximal stack size of our
+Linux system using \Inline{ulimit}. The set of images ranges from very small,
+200x200 pixels images to large ones with more than 22 megapixels. We used three
+sizes of kernels: 1x1, 3x3 and 5x5 matrices. \RefTable{tab:improc_params}
+reports these details.
+
+
+\begin{table}[h]
+\centering
+\caption{Properties of input images and kernels}
+\label{tab:improc_params}
+\begin{tabular}{@{}lll|l|ll@{}}
+\toprule
+Image         & Pixels    & Size   &  & Kernels  & Matrix \\ \midrule
+input3.bmp    & 200x200   & 117 KB &  & identity & 1x1    \\
+input6.bmp    & 250x184   & 136 KB &  & smooth   & 3x3    \\
+input4.bmp    & 220x334   & 216 KB &  & emboss   & 3x3    \\
+input2.bmp    & 512x288   & 433 KB &  & blur     & 5x5    \\
+input1.bmp    & 384x480   & 541 KB &  & edges    & 5x5    \\
+input5.bmp    & 512x384   & 577 KB &  & sharpen  & 5x5    \\
+input7.bmp    & 1350x900  & 3.5 MB &  &          &        \\
+input7big.bmp & 6000x4000 & 69 MB  &  &          &        \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\pagebreak
+We used the following environment for this benchmark:
+\begin{itemize}
+\item Linux 4.8.0-42-generic x86\_64;
+\item Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz;
+\item 4x 16GiB DIMM Synchronous 2133 MHz
+\item Scala compiler/code runner version 2.11.6;
+\item Java(TM) SE Runtime Environment (build 1.8.0\_121-b13) \&
+      Java HotSpot(TM) 64-Bit Server VM (build 25.121-b13, mixed mode);
+\item clang version 3.8.0-2ubuntu4 (tags/RELEASE\_380/final);
+\item gcc version 5.4.0 20160609 (Ubuntu 5.4.0-6ubuntu1\~16.04.4);
+\end{itemize}
+
+We present in \RefFig{fig:improc-res} a subset of the results that highlights
+the general trends of the measurements. In these results, we use the Scala
+runtime as a baseline. In the first and second columns, we show the runtimes and
+speedups for the second smallest and the largest image inputs, respectively,
+using boxplots: the red lines identify the median runtime for each combination
+of parameters. In the third column, we plotted the speedups across inputs, where
+the smallest input is on the left of the x-axis and the largest on the right.
+For each row of the figure, we present the result for a different kernel. The
+first row shows the outcomes for the smallest filter, i.e. a 1x1 matrix, while
+the second and third rows present the results for a 3x3 and 5x5 kernel matrix,
+respectively. \emph{clang.0} corresponds to the runtime of the C code compiled
+with Clang and no optimisation, while optimisation where turned on to the
+compiler maximum level with \emph{clang.3}. The same applies for \emph{gcc.0}
+and \emph{gcc.3}.
+
+From this data, we note a few things. First, when no optimisation are enabled
+for the native backends, both GCC and Clang perform equally bad compared to the
+JVM runtime with a slowdown factor of roughly 2x. However, when optimisation are
+turned on, GCC is capable of achieving speedups between 5x and 10x compared to
+our JVM baseline. Clang is also able of significant runtime improvements as
+well, but the generated assembly is slightly slower than the one generated by
+GCC for this benchmark.
+
+Then, the data shown in the third column of \RefFig{fig:improc-res} reveals that
+the size on the input image does not affect the speedup factors, meaning that
+all runtime environments scale similarly. The spike observed in the top right
+graph is due to the runtime efficiency of the assembly code generated by GCC:
+because the program runs extremely fast with the smallest image and kernel, the
+unit used for runtime measurement might not be precise enough.
+
+Additionally, when exploring the runtime data we saw that the JIT compiler did
+not improve the performance of the JVM backend significantly throughout the
+runs, the first and last runs taking approximately the same time. The variance
+in the runtimes is therefore probably due to the garbage collector doing its
+work.
+
+In conclusion to this benchmark, it clearly appears that \GenC is capable of
+producing efficient C code in comparison to the original Scala code. It follows
+that using Leon to verify the safety of software does not implies slow runtimes.
+
+TODO update conclusion
+
+
+\begin{figure}[!h]
+  \centerfloat
+  \includegraphics[width=1.25\textwidth]{res/improc_results.pdf}
+  \caption{Results for the Image Processing Benchmark}
+  \label{fig:improc-res}
+\end{figure}
 
 
 \section{Conclusion}
