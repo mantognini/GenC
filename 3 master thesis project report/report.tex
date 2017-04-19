@@ -920,6 +920,7 @@ triggering undefined behaviour when running the generated C code.
 
 
 \subsection{I/O Framework}
+\label{io_framework}
 
 While most embedded systems do not have file I/O it remains an important feature
 for many programs. That is why we have introduced I/O support for both standard
@@ -2903,10 +2904,8 @@ compile them using the Clang C compiler and execute them:
 
 Time measurements for the runtime of both C99 implementations were done 10 times
 and are reported as an average in \RefTable{tab:LZW}. All commands were run on a
-\emph{MacBookPro10,1} with a quad-core 2.6Ghz Intel Core i7, 16GB of main
-memory, 6MB of L3 cache and 256KB of L2 cache per core, running macOS 10.11.6.
-The version of Clang used for these experiments is \emph{Apple LLVM version
-8.0.0 (clang-800.0.42.1)}.
+Linux machine having an Intel quad-core i7-6700 clocked at 3.4GHz and 64GB of
+RAM using Clang version 3.8.
 
 A file of 755KB was used for this benchmark; all implementations were able to
 compress and decompress it successfully, yielding exactly the original data.
@@ -2918,17 +2917,17 @@ stored in the dictionary having a length of 65. We used for \textbf{Design A} a
 \textbf{Design B} we additionally set \InlineS{DictionaryMemorySize} to 524288,
 i.e. \InlineS{DictionarySize * BufferSize}.
 
-These results show that \textbf{Design A} is about 16 times slower to transpile
+These results show that \textbf{Design A} is about 6.5 times slower to transpile
 compared to \textbf{Design B}, with a C99 code close to 200 times bigger in
 size. Not surprisingly, compiling the first implementation using most of Clang
-optimisations is roughly 1500-2000 time slower than its alternative
-implementation, with a binary size $\sim$80 times bigger. However, contrary to
-the intuition that less assembly instructions is better for speed, the initial
-version is 150\% faster, using the wall clock to measure time, than the second
-one when both are tasked to compress the same file with the same maximum number
-of codewords to achieve a compression ratio for 23.2\%. Finally, we can remark
-that \textbf{Design A} uses twice as much resident memory than \textbf{Design B}
-at their peak.
+optimisations is significantly slower than its alternative implementation, with
+a binary size $\sim$100 times bigger. However, contrary to the intuition that
+less assembly instructions is better for speed, the initial version is 40\%
+faster, using the wall clock to measure time, than the second one when both are
+tasked to compress the same file with the same maximum number of codewords to
+achieve a compression ratio for 23.2\%. Finally, we can remark that
+\textbf{Design A} uses 60\% more resident memory than \textbf{Design B} at their
+peak, exposing the trade-off between memory usage and computational speed.
 
 \begin{table}[h]
 \centering
@@ -2936,36 +2935,35 @@ at their peak.
 \toprule
             & Design A   & Design B    &  & Comment                   \\ \midrule
 Transpiling &            &             &  &                           \\
-            & $\sim$200s & $\sim$12s   &  & wall clock time           \\
-            & 5.3MB      & 28KB        &  & size of C99 code          \\ \midrule
+            & $\sim$170s & $\sim$26s   &  & user time                 \\
+            & 5.6MB      & 28KB        &  & size of C99 code          \\ \midrule
 Compiling   &            &             &  &                           \\
-            & $\sim$650s & <1s         &  & wall clock time           \\
-            & 1.0MB      & 13KB        &  & size of assembly code     \\ \midrule
+            & $\sim$575s & <1s         &  & wall clock time           \\
+            & 1.2MB      & 12KB        &  & size of assembly code     \\ \midrule
 Runtime     &            &             &  &                           \\
-            & 6.64s      & 9.91s       &  & average wall clock time   \\
-            & 6.60s      & 9.85s       &  & average user time         \\
-            & 0.02s      & 0.01s       &  & average system time       \\
-            & 2408KB     & 1256KB      &  & maximum resident set size \\
+            & 4.62s      & 7.88s       &  & average wall clock time   \\
+            & 4.62s      & 7.88s       &  & average user time         \\
+            & 0.00s      & 0.00s       &  & average system time       \\
+            & 3.1MB      & 1.9MB       &  & maximum resident set size \\
             & $23.2\%$   & $23.2\%$    &  & compression ratio         \\ \bottomrule
 \end{tabular}
 \caption{Measurements for LZW implementations}
 \label{tab:LZW}
 \end{table}
 
-Because this benchmark does a lot of input and output operation using the
-filesystem, it is important to study whether the running times measured are
+Because this benchmark does a lot of input and output operations using the file
+system, it is important to study whether the measured running times are
 significantly impacted or not by blocking kernel operations. As it turns out,
 using the POSIX \Inline{time} utility we can see by looking at the difference of
 clock measurements (\emph{real} or \emph{wall}, \emph{user} and \emph{system})
-that blocking operations account for a marginal portion of runtime. Moreover,
-this utility reported that no page fault occurred. It is therefore highly likely
-that the operating system cached the whole input files in main memory and
-optimised the output operations as well.
+that blocking operations account for a marginal portion of the runtime. It is
+therefore highly likely that the operating system cached the whole input files
+in main memory and optimised the output operations as well.
 
 Interestingly, by looking at a breakdown of the CPU usage per function for both
-implementations, generated by profiling them using Apple's \emph{Instruments}
-tool and Clang compilation options \Inline{-O3 -std=c99 -fno-omit-frame-pointer
--g -DNDEBUG -fno-inline-functions}, we can make two conclusions:
+implementations, generated by profiling the generated C code compiled with Clang
+compilation options \Inline{-O3 -std=c99 -fno-omit-frame-pointer -g -DNDEBUG
+-fno-inline-functions}, we can make two conclusions:
 
 \begin{enumerate}
 
@@ -2988,13 +2986,33 @@ able to run both versions on the JVM. The compilation process lasted for about
 15 seconds for both programs, but their running time were 160s and 200s,
 respectively. Contrary to the C equivalent code, these programs run all
 assertions at runtime and both spend more than 50s in kernel functions, as
-reported by \Inline{time} and use much more memory. Furthermore, the difference
-of runtime efficiency is probably explainable by common issues of software
-running on the JVM, such as autoboxing~\cite{java8autoboxing} or possibly an
-inefficient implementation of \InlineS{Array[Byte]} compared to low level
-\InlineC{int8_t[]} in C. With that in mind it would not be fair to compare the
-performance of the JVM-based implementations to the transpiled programs as no
-effort was made to avoid these well-known limitations.
+reported by \Inline{time} and use much more memory. The main bottleneck of the
+Scala programs is the implementation of the I/O API introduced in
+\RefSec{io_framework}: Leon is currently not capable of reasoning about Java
+types and for this reason, using the Java I/O API is possible exclusively in
+function annotated with \InlineS{@extern}. The direct consequence of this is
+that I/O streams need to be open and close for each individual I/O operation
+available through Lion's I/O framework.
+
+That being said, it is straightforward to provide an efficient implementation of
+the same API for runtime purposes using \InlineS{BufferedInputStream} and
+\InlineS{BufferedOutputStream} of the \InlineS{java.io} package. Furthermore, we
+can disable most runtime assertions by importing
+\InlineS{leon.lang.StaticChecks._}, but the JVM will still perform, for example,
+bound checks on array accesses -- which are known to be valid thanks to
+verification. With this alternative implementation of the I/O API, the JVM
+runtimes are around 20s and 27s, respectively for the \textbf{Designs A \& B},
+of user time as reported by the \Inline{time} utility.
+
+Hence, using \GenC, the speedups are of roughly 4.3x and 3.5x compared to
+\emph{single shot executions} of the original Scala programs, i.e. without
+explicitly giving the JVM the chance to warm up. It was also observed that using
+GCC instead of Clang, with the same compilation options, resulted in faster
+programs, with speedups of 4.4x and 5.0x, respectively. Memory-wise the JVM
+programs consume about 86MB and 147MB of RAM and their executions is interrupted
+by thousands of involuntary context switches.  Again, the programs generated by
+GenC are much more efficient in terms of memory consumption and context
+switches.
 
 
 \section{Case Study: Image Processing}
