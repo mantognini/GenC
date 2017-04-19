@@ -284,15 +284,18 @@ Leon takes an orthogonal approach by providing tools for formal verification of
 programs written in a subset of Scala. In a previous work we introduced \GenC, a
 module for Leon that converts Scala applications into equivalent and safe C99
 programs, allowing developers to leverage high-level feature of Scala to
-implement robust applications even for embedded systems. The aim of this project
-is to augment Leon and \GenC in order to support a larger fragment of Scala that
-includes inheritance, generic programming, additional numeric types, pattern
-matching and more. Additionally, we closely analyse the MISRA Guidelines and
-shape the generated C code to work towards compliance with its rules while
-taking advantage of the verification capabilities of Leon to automatically
-detect a variety of bugs. We discuss these improvements and new features by
-implementing the famous LZW compression/decompression algorithm and a
-kernel-based image processing algorithm.
+implement robust applications even for embedded systems.
+
+The aim of this project is to augment Leon and \GenC in order to support a
+larger fragment of Scala that includes inheritance, generic programming,
+additional numeric types, pattern matching and more. Additionally, we closely
+analyse the MISRA Guidelines and shape the generated C code to work towards
+compliance with its rules while taking advantage of the verification
+capabilities of Leon to automatically detect a variety of bugs. We discuss these
+improvements and new features by implementing the famous LZW
+compression/decompression algorithm as well as a kernel-based image processing
+algorithm and show that the produced native C programs are significantly more
+efficient both in terms of memory usage but also in terms of execution speed.
 
 \end{abstract}
 
@@ -414,7 +417,8 @@ which assumptions.
 We also present two implementation of the famous LZW \cite{welch1985high}
 compression and decompression algorithm, as well as some image manipulations
 based on filters, illustrating how \GenC can successfully be used for real-life
-applications.
+applications to produce highly efficient native programs that are significantly
+faster than the default JVM-based runtime offered by Scala.
 
 We structure this report as follow. First we finish this section by reviewing
 some related works. In \RefSec{motivation} we highlight the most common kinds of
@@ -462,10 +466,23 @@ subset of Java offers a better portability system with its well-defined runtime
 and standard library. However, these advantages are limited by issues of
 performance and memory size.
 
+Recently started, the Scala Native project \cite{scala_native} already offers
+the ability to compile many Scala programs into native assembly instructions
+using the LLVM compiler and its internal representation language. \GenC differs
+from Scala Native in several ways. First, unlike the assembly produced by Scala
+Native, the generated C99 code can be inspected easily and therefore approved by
+security teams when necessary. Second, by generated standard C code, we give the
+user the opportunity to choose their C compilers, as well as the targeted
+architecture for runtime and other environment tuning options that are not
+exposed by Scala Native. Then, \GenC also takes into consideration verifications
+of programs, and the limitations that the verification process imposes on the
+Scala language, to produce efficient code that doesn't require garbage
+collecting and other heavy runtime facilities that Scala Native deals with.
+
 Frama-C \cite{framac} is somewhat similar to the static analysis modules of
 Leon. Both offer to verify without actually running programs whether some
 properties hold or not. But while Leon works with programs written in Scala,
-Frama-C analyses software in C. Which means that higher level concepts such as
+Frama-C analyses software in C, which means that higher level concepts such as
 inheritance or generic types cannot be used to design complex programs,
 therefore limiting developers to basic tools. That being said, adding assertions
 and properties written in ANSI/ISO C Specification Language (ACSL) \cite{acsl},
@@ -478,8 +495,8 @@ Microsoft has also been working on a similar project to Frama-C called VCC
 \cite{vcc}, with a major difference being that VCC works at verifying concurrent
 C programs. The sub-language used to specify verification conditions is
 significantly different, yet has no impact on runtime as well. It is not clear
-whether this project is still active or not. Currently, \GenC do not offer the
-ability to work with concurrent programs written in Scala.
+whether this project is still active or not, but contrary to VCC \GenC does not
+offer the ability to work with concurrent programs written in Scala.
 
 The Cyclone programming language \cite{cyclone} was designed based on C to bring
 safety to the language using a similar syntax, avoiding bugs such as buffer
@@ -488,8 +505,8 @@ added support for exceptions, region-based memory management as well as an
 optional garbage collector on top of the usual manual memory management of C.
 Cyclone is now discontinued but several of its concept made their way into the
 Rust system programming language. To the contrary, \GenC produces pure C99
-programs, which are exempt of dangling pointers, while still being able, thanks
-to Leon, detect any potential buffer overflow.
+programs, which are exempt of dangling pointers, while still being able to
+detect any potential buffer overflow, thanks to Leon.
 
 Finally, to design any program bigger than a few assembly instructions one will
 need to use a compiler for whatever language is being used. \GenC indirectly
@@ -3458,19 +3475,25 @@ relevant to run measurements for this benchmark again.
 \section{Conclusion}
 \label{conclusion}
 
-The goals achieved in this project are multiple. First, we introduced the
-ability to use \InlineS{Byte} with Leon with the proper integer promotion
-strategy used by Java and Scala. We also updated Leon to add automatic
-verification for a wider range of potential integer overflows and to detect
-unexpected behaviour in arithmetic expressions. Additionally, we introduced
-an Input/Output API for standard streams and files, with a backend for C99.
+The goals achieved in this project are multiple: we extended the verification
+capabilities of Leon, significantly augmented the set of Scala programs that
+\GenC can convert into C99 equivalent code while taking into account the MISRA
+guidelines, and showed through two case studies that the generated programs are
+significantly faster than the original Scala programs.
+
+First, we introduced the ability to use \Inline{Byte} with Leon with the proper
+integer promotion strategy used by Java and Scala. We also updated Leon to add
+automatic verification for a wider range of potential integer overflows and to
+detect unexpected behaviour in arithmetic expressions. Additionally, we
+introduced an Input/Output API for standard streams and files, with a backend
+for C99.
 
 After carefully analysis the requirement imposed by the \emph{xlang} module
 regarding aliasing we devised a stack-allocation based memory model, free of
 dynamic allocation, that is capable of handling most form of mutability in class
 hierarchies, and therefore imposes no requirement on heap memory management.
 
-Not only did we introduce support for \InlineS{Byte} and other primitive types,
+Not only did we introduce support for \Inline{Byte} and other primitive types,
 but we managed to transpile generic types and functions into C code without
 using language extensions nor introduce a runtime performance penalty. Next, we
 presented a stronger model for normalisation of Scala code in order to properly
@@ -3500,8 +3523,8 @@ successfully \GenC can perform on real-life programs, although identifying some
 limitations with nested arrays that are the consequences of our memory model.
 Performance-wise, we showed that using Clang or GCC to compile the code
 generated by Leon and \GenC, especially when using the compilers' clever
-optimisations, result in a runtime often close to ten times faster compared to
-the usual JVM runtime offered by Scala.
+optimisations, result in runtime between 4x and 10x faster compared to the usual
+JVM runtime offered by Scala, while being as safe as the source programs.
 
 
 \section{Future Works}
