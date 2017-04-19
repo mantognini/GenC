@@ -1,0 +1,14 @@
+input.*.txt
+decoded.txt
+encoded.txt
+log.*
+stats.*
+out-classes
+LZWa.c
+LZWa.clang
+LZWa.gcc
+LZWa
+LZWb.c
+LZWb.clang
+LZWb.gcc
+LZWb
