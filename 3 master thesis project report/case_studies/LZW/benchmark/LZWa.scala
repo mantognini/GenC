@@ -3,7 +3,6 @@
 import leon.lang._
 import leon.proof._
 import leon.annotation._
-import leon.lang.StaticChecks._
 
 import leon.io.{
   // FileInputStream => FIS,  // replaced by an efficient implementation

@@ -14,7 +14,7 @@ mkdir $outClasses
 begin
 
     echo "Compling..." >&2
-    time -v fsc -deprecation (find $leonLib -name '*.scala') LZWa.scala LZWb.scala FIS.scala FOS.scala -d "$outClasses"
+    time -v fsc -deprecation (find $leonLib -name '*.scala') *.scala -d "$outClasses"
     echo "Scala: Done" >&2
     time -v leon --genc ../LZWa.scala --o=LZWa.c
     time -v leon --genc ../LZWb.scala --o=LZWb.c
@@ -58,12 +58,20 @@ for i in (seq 1 $MAX)
 
     # execute all versions
     rm -f "decoded.txt"
-    time -v scala -cp "$outClasses" LZWa ^| tee log.jvm.a.$i.txt
-    check jvm.a
+    time -v scala -cp "$outClasses" LZWa ^| tee log.jvm_vc.a.$i.txt
+    check jvm_vc.a
 
     rm -f "decoded.txt"
-    time -v scala -cp "$outClasses" LZWb ^| tee log.jvm.b.$i.txt
-    check jvm.b
+    time -v scala -cp "$outClasses" LZWb ^| tee log.jvm_vc.b.$i.txt
+    check jvm_vc.b
+
+    rm -f "decoded.txt"
+    time -v scala -cp "$outClasses" LZWa_vc_removed ^| tee log.jvm_no_vc.a.$i.txt
+    check jvm_no_vc.a
+
+    rm -f "decoded.txt"
+    time -v scala -cp "$outClasses" LZWb_vc_removed ^| tee log.jvm_no_vc.b.$i.txt
+    check jvm_no_vc.b
 
     echo "Scala: Done"
 
@@ -92,19 +100,21 @@ for i in (seq 1 $MAX)
 end
 
 # Collect stats
-for p in jvm clang gcc
+echo "backend;version;average[s]" | tee stats.cpu.csv
+for p in jvm_vc jvm_no_vc clang gcc
     for v in a b
 
         # CPU time
         grep -hPo '.*User time \(seconds\): \K.*' log.$p.$v.*.txt > stats.cpu.$p.$v.txt
         awk '{a+=$1} END{print a/NR}' stats.cpu.$p.$v.txt | sed -u -e "s/^/avg = /" >> stats.cpu.$p.$v.txt
+        awk '{a+=$1} END{print a/NR}' stats.cpu.$p.$v.txt | sed -u -e "s/^/$p;$v;/" | tee -a stats.cpu.csv
 
         # Max memory
         grep -hPo '.*Maximum resident set size \(kbytes\): \K.*' log.$p.$v.*.txt > stats.ram.$p.$v.txt
         awk '{a+=$1} END{print a/NR}' stats.ram.$p.$v.txt | sed -u -e "s/^/avg = /" >> stats.ram.$p.$v.txt
 
         # Check that all compressed versions had the same size for all versions
-        set baseline stats.ratio.jvm.$v.txt
+        set baseline stats.ratio.jvm_no_vc.$v.txt
         cmp $baseline stats.ratio.$p.$v.txt
         if [ $status -ne 0 ]
             echo "$p.$v didn't compress like the baseline!!!" >&2
@@ -113,4 +123,6 @@ for p in jvm clang gcc
 
     end
 end
+
+
 
