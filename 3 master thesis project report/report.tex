@@ -117,9 +117,9 @@
   %keywordstyle={[2]\color{blue!30!darkgray}\bfseries}
 }
 
-\newcommand{\Inline}[1]{\lstinline[basicstyle=\ttfamily]|#1|}
-\newcommand{\InlineC}[1]{\lstinline[language=C99]|#1|}
-\newcommand{\InlineS}[1]{\lstinline[language=Leon]|#1|}
+\newcommand{\Inline}[1]{\lstinline[basicstyle=\ttfamily,columns=fixed]|#1|}
+\newcommand{\InlineC}[1]{\lstinline[language=C99,columns=fixed]|#1|}
+\newcommand{\InlineS}[1]{\lstinline[language=Leon,columns=fixed]|#1|}
 % %\newcommand{\inlineScala}[1]{\lstinline[language=MyScala,breaklines=true,breakatwhitespace=true]|#1|}
 
 % Use code in description item, Based on http://tex.stackexchange.com/a/181325/77356
@@ -257,7 +257,7 @@
 
 \date{
   {\small Version 1.1}\\
-  April 2017
+  May 2017
 }
 
 \author{Marco Antognini}
@@ -280,14 +280,14 @@ enough to avoid flaws in programs. Moreover, many company concerned by the
 security of their applications, especially in mission critical industries, spend
 a considerable effort and amount of money to write robust software certified by
 solid guidelines and standards. For embedded systems, MISRA C is a certification
-process commonly used that provides directive to write portable and maintainable
-C code while avoiding many pitfalls of the language.
+process commonly used which provides directives to write portable and
+maintainable C code while avoiding many pitfalls of the language.
 
 Leon takes an orthogonal approach by providing tools for formal verification of
 programs written in a subset of Scala. In a previous work we introduced \GenC, a
 module for Leon that converts Scala applications into equivalent and safe C99
 programs, allowing developers to leverage high-level feature of Scala to
-implement robust applications even for embedded systems.
+implement robust applications, even for embedded systems.
 
 The aim of this project is to augment Leon and \GenC in order to support a
 larger fragment of Scala that includes inheritance, generic programming,
@@ -306,7 +306,7 @@ efficient both in terms of memory usage but also in terms of execution speed.
 
 \begin{center}
     Master Thesis Project under the supervision of \\
-    Prof. Viktor Kuncak \& Régis Blanc \\
+    Prof. Viktor Kuncak \& Dr. Régis Blanc \\
     Lab for Automated Reasoning and Analysis LARA - EPFL
 \end{center}
 
@@ -333,7 +333,7 @@ efficient both in terms of memory usage but also in terms of execution speed.
 
 Software become significantly more complex, solving every day new challenges,
 partly thanks to the decrease in price of hardware which is constantly improved,
-making computers more and more robust, quicker and more energy efficient.
+making computers more and more robust, faster and more energy efficient.
 Constant breakthroughs enabled us to revolutionise how people benefit from their
 personal computers, or electronic devices in a general sense: from the
 information now instantaneously available at our finger tips provided by
@@ -348,7 +348,7 @@ patients' life.
 Future technologies can be expected to follow a similar evolution, making
 obvious that systems complexity is predicted to increase. Many companies already
 spend a considerable amount of money to assert their software is exempt of life
-threatening bugs through various certifications or to keep their data safe and
+threatening bugs through various certifications, or to keep their data safe and
 available in a matter of milliseconds. Hence, being able to evaluate the quality
 of software, detecting issues before they arise, in a reliable and simple
 fashion can significantly boost performance of Quality Assurance (QA) processes.
@@ -376,10 +376,10 @@ explains why those systems are written in low-level, native languages often
 taking their roots in the C language.
 
 For these reasons we have previously introduced the \GenC module of Leon
-\cite{genc1} to transpile Scala programs into a safe and equivalent C99 pieces
+\cite{genc1} to transpile Scala programs into safe and equivalent C99 pieces
 of software. \GenC allows programmers to leverage the high-level features of the
 Scala programming language and reduce the development cost of low-level software
-while avoiding using error-prone languages. Moreover it helps developers avoid
+while avoiding using error-prone languages. Moreover, it helps developers avoid
 some of the most commonly reported bugs (e.g. buffer overflows or arithmetic
 errors).
 
@@ -401,11 +401,11 @@ the \emph{Lab for Automated Reasoning and Analysis} (LARA).
 The present work adds to \GenC a better support for object oriented or generic
 programming, a wider range of supported primitive types, an improved handling of
 arithmetic expressions and an interfacing system to integrate existing
-libraries, just to name a few. Together these improvements augment the range of
+C libraries, just to name a few. Together these improvements augment the range of
 the supported fragments of Scala. We also introduce a new memory model based on
 our analyse of recent improvements made to the \emph{xlang} module
 \cite{Blanc:2013:OLV:2489837.2489838} \cite{xlang} regarding mutability. One
-singular feature of this model is that it is solely based on stack allocation.
+singular feature of this model is that it is solely based on stack allocations.
 
 Furthermore, we studied reliability processes used for development of
 applications targeted at embedded devices, such as the ones used in the
@@ -418,12 +418,12 @@ ecosystem manages to produce safe code free of undefined behaviour and under
 which assumptions.
 
 We also present two implementation of the famous LZW \cite{welch1985high}
-compression and decompression algorithm, as well as some image manipulations
-based on filters, illustrating how \GenC can successfully be used for real-life
-applications to produce efficient native programs that are significantly faster
-than the default JVM-based runtime offered by Scala.
+compression and decompression algorithm, as well as an image manipulation
+benchmark based on filters, illustrating how \GenC can successfully be used for
+real-life applications to produce efficient native programs that are
+significantly faster than the default JVM-based runtime offered by Scala.
 
-We structure this report as follow. First we finish this section by reviewing
+We structure this report as follow. First, we finish this section by reviewing
 some related works. In \RefSec{motivation} we highlight the most common kinds of
 bugs and what are the main challenges for embedded development. Then, we present
 new features we developed for Leon itself in \RefSec{leon_features}. We
@@ -434,7 +434,7 @@ from Scala down to C in Sections \ref{translation_defs} and
 integrated into the translation process in \RefSec{library}. In \RefSec{MISRA}
 we present the MISRA Guidelines, discuss its importance and explain how Leon and
 \GenC work toward compliance. Then, we showcase in Sections \ref{lzw} and
-\ref{img_proc} the abilities of \GenC by implementing the LZW algorithm and some
+\ref{img_proc} the abilities of \GenC by implementing the LZW algorithm and an
 image processing algorithm. We summarise this report in \RefSec{conclusion} and
 in the final \RefSec{future_works} we introduce how Leon and \GenC can be
 further improved to help developing safe applications.
@@ -474,13 +474,15 @@ the ability to compile many Scala programs into native assembly instructions
 using the LLVM compiler and its internal representation language. \GenC differs
 from Scala Native in several ways. First, unlike the assembly produced by Scala
 Native, the generated C99 code can be inspected easily and therefore approved by
-security teams when necessary. Second, by generated standard C code, we give the
-user the opportunity to choose their C compilers, as well as the targeted
+security teams when necessary. Second, by generating standard C code, we give
+the user the opportunity to choose their C compilers, as well as the targeted
 architecture for runtime and other environment tuning options that are not
 exposed by Scala Native. Then, \GenC also takes into consideration verifications
 of programs, and the limitations that the verification process imposes on the
 Scala language, to produce efficient code that doesn't require garbage
-collecting and other heavy runtime facilities that Scala Native deals with.
+collecting and other heavy runtime facilities that Scala Native has to deal
+with. In \RefSec{improc_bench_res} we do a performance comparison on our Image
+Processing benchmark.
 
 Frama-C \cite{framac} is somewhat similar to the static analysis modules of
 Leon. Both offer to verify without actually running programs whether some
@@ -488,9 +490,9 @@ properties hold or not. But while Leon works with programs written in Scala,
 Frama-C analyses software in C, which means that higher level concepts such as
 inheritance or generic types cannot be used to design complex programs,
 therefore limiting developers to basic tools. That being said, adding assertions
-and properties written in ANSI/ISO C Specification Language (ACSL) \cite{acsl},
-which interface nicely with C since it can be embedded in standard comment
-block, to the generated C99 code based on the original verification conditions
+and properties written in ANSI/ISO C Specification Language (ACSL) \cite{acsl}
+-- which interface nicely with C since it can be embedded in standard comment
+block -- to the generated C99 code based on the original verification conditions
 the user wrote in Scala would be beneficial to help prove the new, low-level
 program still respects its original specification.
 
@@ -569,12 +571,12 @@ including a remote patch procedure.
 \item[Out-of-Bounds Access \& Buffer Overflow]
 
 Some of the most frequent kinds of bugs present in our software are overflows;
-for example Apple Security Update HT207275~\cite{HT207275} patches several bugs
+for example Apple Security Update HT207275~\cite{HT207275} patches several bugs,
 of which roughly 20\% were \emph{simple} buffer overflows and out-of-bounds
 accesses.
 
 Those are typically bugs that can be avoided using Leon and \GenC: the
-verification procedure highlight place in Scala programs where overflows
+verification procedure highlights places in Scala programs where overflows
 can occur, with an example of values that triggers the bug at runtime.
 
 \end{description}
@@ -659,11 +661,11 @@ those omnipresent issues.
 
 \subsection{Challenges for Embedded Devices}
 
-Seen the range of bugs and their frequencies and gravity, it appears clear that
+Seen the range of bugs, their frequencies and gravity, it appears clear that
 developers needs good tools in order to write decently safe software. Embedded
 devices add to this context the challenge of producing safe \textbf{and}
-efficient code with a limited amount of resources, such as computational speed,
-memory capacity and energy consumption. C is commonly chosen to develop programs
+efficient code with a limited amount of resources, such as computational power,
+memory capacity and energy. C is commonly chosen to develop programs
 for such restrictive environments. The reason for this choice is twofold.
 Firstly, in contrast to Java or Python it is a native language and therefore is
 more suited for such tiny runtime environments. Secondly, despite the work of
@@ -755,7 +757,7 @@ void release(List* list) {
 }
 \end{Code}
 
-With \GenC, developers can use Leon produce low level C99 code as safe as the
+With \GenC, developers can use Leon to produce low level C99 code as safe as the
 verified Scala program given as input without having to deal with portability
 issues. By using a language like Scala, programmers can take advantage of the
 strong type system to avoid illegal type conversions that emerge from the needs
@@ -770,7 +772,7 @@ other one with a narrow contract that appends the element without checking the
 capacity but should be called exclusively on non-full lists. With Leon, we can
 ensure that calls to the optimised version are valid, without incurring runtime
 cost for assertions, and therefore allow the developer to follow the C motto
-``not paying for what you don't use'' without any additional risk.
+``not paying for what you don't use'', without any additional risk.
 
 \begin{Code}{Leon}{lst:appends}{Optimisation through verification}
 case class ArrayList(val buffer: Array[Int], var size) {
@@ -954,7 +956,7 @@ and types with \GenC. We further discuss this point in \RefSec{library}.
 
 \lstitem{leon.io.StdOut}
 
-One case use the \InlineS{StdOut} object in order to read data from the standard
+One can use the \InlineS{StdOut} object in order to read data from the standard
 input stream. Specifically, it is possible to print, with or without a new line,
 \InlineS{String}, \InlineS{Char}, \InlineS{Byte} and \InlineS{Int} with the
 \InlineS{print} and \InlineS{println} functions.
@@ -991,7 +993,7 @@ To print content to a new file, we provide \InlineS{FileOutputStream}. It
 provides functions to check whether the file was successfully opened and the
 ability to write \InlineS{String}, \InlineS{Char}, \InlineS{Byte} and
 \InlineS{Int} at the end of the file through the \InlineS{write} overloaded
-method which requires the stream to be open and report errors by returning
+method, which requires the stream to be open and report errors by returning
 \InlineS{false}.
 
 It is important to note that one should always invoke the \InlineS{close()}
@@ -1116,7 +1118,7 @@ class in the hierarchy that is defined as mutable under the previous rules. A
 specific \InlineS{Tuple} type is only considered mutable if any of its member is
 of mutable type, but arrays are never considered mutable because they already
 propagate side-effects even when duplicated thanks to the indirection used in
-their representation. Primitive types, such as \InlineS{Int} of \InlineS{Byte},
+their representation. Primitive types, such as \InlineS{Int}, \InlineS{Byte},
 and \InlineS{String} are not considered mutable.
 
 Finally, a nested function parameter list is extended to include variables
@@ -1167,7 +1169,7 @@ static A_0 scope_1(void) {
 
 However, this model suffers from one limitation we exemplify in
 \RefCode{lst:validXlang} that is considered valid by \emph{xlang} but not by
-\GenC.
+\GenC. Such programs are therefore gracefully rejected by \GenC.
 
 \begin{Code}{Leon}{lst:validXlang}{%%
 Example of code accepted by Leon but illegal with \GenC.}
@@ -1279,7 +1281,7 @@ converting the \InlineS{String} type to \InlineC{char*} is valid thanks to the
 fact strings cannot be mutated. Obviously, this comes at the cost of not being
 able to read strings from files or through \InlineS{StdIn}. \InlineS{Char}
 cannot yet be read from external sources as well because of the complexity of
-encoding. Furthermore, because character literals are limited to the ASCII range
+encoding. Furthermore, because character literals are limited to the ASCII
 range, we are allowed to use \InlineC{char} as a valid representation of such
 values on any platform.
 
@@ -1384,7 +1386,7 @@ successfully.
 
 With this model, one can easily check using \InlineS{isInstanceOf} whether an
 object of a given class hierarchy is, at runtime, any of the case classes.
-However, one cannot directly known if an object is an instance of a non top
+However, one cannot directly know if an object is an instance of a non top
 level abstract class; instead one has to check if the object's tag denotes any
 of the concrete case classed derived from the given abstract class. This process
 is not yet automated by \GenC. The same limitation applies to casts: it is not
@@ -1498,6 +1500,8 @@ In addition to the support previously introduced for regular, overloaded and
 nested functions with call-by-value arguments, \GenC now handles generic
 functions in a similar fashion to generic types: they are not typed erased in
 Leon which allows us to consider them as templates for specialised functions.
+Moreover, \GenC now offers to transpile higher-order functions as well:
+non-capturing functions can be used as values.
 
 For safety reasons, MISRA imposes that functions shall not call themselves,
 either directly or indirectly. For that reason \GenC will emit a warning when a
@@ -1505,9 +1509,6 @@ recursive function is used. The guidelines, however, allow such functions to be
 used if one can determine the worst case stack space required during execution.
 And, as a matter of fact, the ecosystem of Leon offers support for resource
 bound inference \cite{Madhavan2014}.
-
-With a few exceptions listed in \RefSec{library} higher-order functions are not
-supported and functions are not regarded as first-class citizens.
 
 \GenC expects two specific functions to be present in the input source:
 \InlineS{main} and \InlineS{_main} inside the main object that represents the
@@ -1567,12 +1568,8 @@ This new version of \GenC improves some arithmetic operations and uses a more
 strict normalisation of instructions, but also adds support for pattern
 matching. Conditional and loops statements, \InlineS{if} and \InlineS{while},
 were already introduced in the previous iteration of the project, and assertions
-were not translated into C code.
-
-Additionally, \GenC now properly rejects code using the \InlineS{==} relational
-operator for case classes in order to focus our efforts on more critical
-constructs that cannot be implemented manually in the user codebase using a
-regular function.
+were not translated into C code. We also introduced the ability to use the
+\Inline{==} and \Inline{!=} operators to compare object equality.
 
 
 \subsection{Execution Order Normalisation}
@@ -1621,16 +1618,16 @@ static bool test9_1(void) {
 Regarding performance, using any modern compiler with its basic set of
 optimisations (\Inline{-O1}) should be enough to make most if not all
 intermediate results disappear from the generated assembly instructions, without
-involving what are considered for some dangerous optimisations.
+involving what are considered by some people dangerous optimisations.
 
 \subsection{Bitwise Shift Operators}
 \label{shifts}
 
 As reported in the \RefApp{ops_checklist}, which details the behaviour of all
 arithmetic operators under the C and Java standards, most of the operators
-supported previously by \GenC were correctly implemented.  However, this was no
+supported previously by \GenC were correctly implemented.  However, this was not
 the case for the bitwise shift operators, mainly because signed shift operations
-do not work as one might expect in C, we have to rely on the unsigned version of
+do not work as one might expect in C. We have to rely on the unsigned version of
 \InlineC{<<} and \InlineC{>>} to match the behaviour of Java's \InlineS{<<} and
 \InlineS{>>>} operators.
 
@@ -1666,7 +1663,7 @@ that the C compiler indeed fulfils our assumptions, one could devise a safe
 conversion function, at a runtime cost.
 
 After inspection of compilers' manual it appears that GCC~\cite{gccID} and
-Microsoft's~\cite{msvcID} compilers match the assumed behaviour; clang lacks
+Microsoft's~\cite{msvcID} compilers match the assumed behaviour; Clang lacks
 such information but we can assume GCC's model to hold as well~\cite{clangID}.
 
 % References for implementation-defined integer arithmetic:
@@ -1701,7 +1698,7 @@ operations at a performance cost.
 
 We leverage the \emph{tagged-union} used to represent inheritance in order to
 support membership test. Indeed, we only need to compare the tag of an instance
-to the tag of the given type. Referring to the classes defined in
+to the tag corresponding to the given type. Referring to the classes defined in
 \RefCode{lst:classHierarchyS} from \RefSec{class}, the following Scala code
 \begin{ShortCode}{Leon}
 def fun(b: Top) = b.isInstanceOf[One]
@@ -1738,11 +1735,9 @@ internally to handle some forms of pattern matching, which we present next.
 \subsection{Pattern Matching}
 
 Support for most forms of pattern matching is also introduced in this new
-version. That is, with the exception of the \emph{Unapply Pattern}, also known
-as \emph{Extractor Objects}, pattern matching expressions are converted to
-imperative expressions using \InlineS{if-else} statements.
-
-The format of a pattern matching expressions is
+version. That is, with the exception of the \emph{Unapply Pattern} pattern
+matching expressions are converted to imperative expressions using
+\InlineS{if-else} statements. The format of a pattern matching expressions is
 \begin{ShortCode}{Leon}
 scrutinee match {
   case pattern1 [if guard1] => body1
@@ -1876,30 +1871,30 @@ verified Scala code.
  % - Annotations: `@cCode.typedef`, `@cCode.drop`, `@cCode.function` -> ability to
    % plug in any C library
 
-Although \GenC does not support higher-order functions at the moment, Leon's
-library was updated so that most of \InlineS{leon.lang.Option} methods can be
-used by program translated into C. The trick used here is simply to annotate
+Although \GenC does not yet support anonymous functions, Leon's library was
+updated so that most of \InlineS{leon.lang.Option} methods can be used without
+having to deal with this restriction. The trick used here is simply to annotate
 those methods with \InlineS{@inline} in order to remove the presence of lambdas
-in the AST.  One can then use \InlineS{getOrElse}, \InlineS{orElse},
+in the AST. One can then use \InlineS{getOrElse}, \InlineS{orElse},
 \InlineS{map}, \InlineS{flatMap}, \InlineS{filter}, \InlineS{withFilter},
 \InlineS{forall} and \InlineS{exists}. This trick can be used in the user code
 as well but is limited, for obvious reasons, to non-recursive higher-order
 functions.
 
 When it comes to functions using system calls, such as I/Os, no automated
-conversion is possible. In those situations we let the user define his own
+conversion is possible. In those situations we let the user define their own
 implementation for functions, add manual conversions from Scala types to C types
 or even drop some functions and types from the translation, with
 \InlineS{@cCode.function}, \InlineS{@cCode.typedef} and \InlineS{@cCode.drop}
 annotations, respectively, from the package \InlineS{leon.annotation}. Their
 usage is detailed in the following subsections.
 
-Generally speaking, those annotations can be used to make proxies between the
+Generally speaking, these annotations can be used to make proxies between the
 verified, Scala code and some existing, trusted C libraries.
 
 \subsection{Custom Function Implementation}
 
-In order to circumvent some current limitations of Leon/\GenC ecosystem one can
+To circumvent some of the current limitations of Leon/\GenC ecosystem one can
 use the
 \begin{ShortCode}{Leon}
 @cCode.function(code, includes)
@@ -1917,8 +1912,8 @@ using a string literal and not an Abstract Syntax Tree. The user is responsible
 for the correctness of the provided C99 code.
 
 Because \GenC renames the functions, e.g. to deal with overloading, the special
-\InlineC{__FUNCTION__} token should be used instead of the original name.
-Furthermore, the parameters and return type should match the signature
+\InlineC{__FUNCTION__} token must be used instead of the original name.
+Furthermore, the parameters and return type must match the signature
 automatically generated by \GenC.
 
 For top-level functions the argument list is the same in C, modulo the
@@ -1989,7 +1984,7 @@ only used as implementation details in proofs using the
 @cCode.drop()
 \end{ShortCode}
 annotation. As \GenC triggers an error if a dropped type or function it can be useful to
-ensure that the type or function is indeed not used in live code.
+ensure that a type or a function is indeed not used in live code.
 
 
 %TODO: if time permits, maybe as an appendix
@@ -2047,7 +2042,7 @@ generated C code.
 
 MISRA mandates that for each project a specific variant of the C language as
 well as requirements for the compiler implementation(s) should be defined. With
-\GenC we ask the user to use a C99 compiler to compile the generated code, but
+\GenC we ask the user to use a C99 compiler with the generated code, but
 add no requirement on language extensions as none are used.
 
 The MISRA Directive 1.1 asks that all implementation-defined behaviour on which
@@ -2068,7 +2063,7 @@ reinterpretation of their respective binary representations, and, finally,
 \end{enumerate}
 
 \GenC does not rely on any other implementation-defined behaviour listed under
-the annex G of the MISRA Guidelines. Moreover, no assembly instructions are
+the annex~G of the MISRA Guidelines. Moreover, no assembly instructions are
 embedded in the produced C code, making it as platform-independent as possible.
 
 Furthermore, provided that the input Scala code was thoroughly verified with
@@ -2087,11 +2082,11 @@ errors mentioned in Directive 4.1 are avoided for the following reasons:
 \item function parameters are always valid when Leon asserts that all function
 calls are valid with respect to function requirements,
 
-\item pointer dereferencing is assumed to be valid under out memory model even
+\item pointer dereferencing is assumed to be valid under our memory model even
 tough we do not explicitly check for \InlineC{NULL} pointers as explained in
 \RefSec{memory_model}, and
 
-\item dynamic memory is avoided altogether thanks to our memory model.
+\item dynamic memory allocation is avoided altogether thanks to our memory model.
 
 \end{enumerate*}
 
@@ -2128,10 +2123,10 @@ functions (Rule~17.4);
 Points 1 is ensured by Scala automatically. Points 2 is guaranteed simply by
 generating explicit declaration for all functions. Point 3 is fulfilled by Scala
 and by ensuring all pattern matching cases are handled in a \InlineS{match}
-expression. Point 4 holds thanks to the exception listed in Rule 19.1 allowing
-\textit{assignment between two objects that overlap exactly and have compatible
-types}. Point 5, 6 \& 7 are all ensured by the design of the new I/O component
-of Leon's library.
+expression, with the help of Leon. Point 4 holds thanks to the exception listed
+in Rule 19.1 allowing \textit{assignment between two objects that overlap
+exactly and have compatible types}. Point 5, 6 \& 7 are all ensured by the
+design of the new I/O component of Leon's library.
 
 \subsection{Rules Subsumed Under Verification}
 \label{verified_rules}
@@ -2177,9 +2172,9 @@ range that prohibits integer overflow in this context, moving the burden of
 minimising errors on the design of the application itself.
 
 \item Verification conditions can be used to enforce all functions calls satisfy
-the contract imposed by function specifications, implicitly validating Directive
-4.11, which we can expend to any function and not only functions of the standard
-C library.
+the contract imposed by function specifications, therefore implicitly validating
+Directive 4.11, which we can expend to any function and not only functions of
+the standard C library.
 
 To illustrate this, assuming the \InlineS{dot} function starts with
 \InlineS{require(a.length == b.length)}, the following code
@@ -2192,13 +2187,20 @@ results in an invalid precondition for the function call.
 
 \item Rule 1.3 complements Directive 4.1 by requiring that there shall be no
 occurrence of undefined or even unspecified behaviour. \GenC can ensure this
-partially by generating code that is not based, for example, on a particular
-order of evaluation of function arguments. But also by ensuring, through static
-verification, that no division by zero can occur, for example. Similarly to the
-previous rule, Rule 12.2 requires specifically that all operands of shift
-expressions are within valid ranges. And, Rule 18.1 completes Directive 4.1 by
-asking developers to pay special attention to invalid pointer arithmetic, which
-includes array access in C.
+in two ways:
+\begin{enumerate*}[label=\arabic*\upshape)]
+
+\item by generating code that is not based, for example, on a particular
+order of evaluation of function arguments, and
+
+\item by ensuring, through static verification, that no division by zero can
+occur, for example.
+
+\end{enumerate*} Similarly to the previous rule, Rule 12.2 requires specifically
+that all operands of shift expressions are within valid ranges. And, Rule 18.1
+completes Directive 4.1 by asking developers to pay special attention to invalid
+pointer arithmetic, which includes array access in C. Again, verification can
+detect such invalid operations.
 
 \item As detailed in the previous section the \emph{mandatory} Rule 17.4 is
 ensured when all execution paths within a function are terminated by a
@@ -2233,13 +2235,12 @@ respects.
 without errors and contain no transgressions of the standard C syntax while
 respecting the limitations of the used C compiler. As discussed above, \GenC
 assumes a compliant C99 compiler is available for compilation and therefore can
-uses the whole spectrum of the standard C syntax, without additional limits. It
-is also careful to generate exclusively standard C99 code, without embedding
-assembly instructions.
+uses the whole spectrum of the standard C syntax. It is also careful to generate
+exclusively standard C99 code, without embedding assembly instructions.
 
 \item As discussed through this report, \GenC uses exclusively stack allocated
-objects. It directly follows that Directive 4.12, which asks that no dynamic
-allocations are used, is fulfilled.
+objects. It directly follows that Directive 4.12 -- which asks that no dynamic
+allocations are used -- is fulfilled.
 
 \item Rules 3.1 and 3.2 are both about comments within C code, adding some
 requirements on the syntax defined in the C standard. Because comments are
@@ -2253,7 +2254,7 @@ used only for readability purposes, delimiting several parts of the code such as
 
 \item Rules 5.2, 5.3 and 5.7, which regulate usage of identifiers, should be
 enforced by the user as we discuss in \RefSec{user_responsibility} but \GenC
-does ensure both Rule 5.5 is respected by not using macros. Rule 5.6 is also
+does ensure Rule 5.5 is respected by not using macros. Rule 5.6 is also
 respected because all identifiers used in \InlineC{typedef}s are unique, thanks
 to the extra unique postfixes added by \GenC.
 
@@ -2271,17 +2272,17 @@ allowed. Hence, Rule 8.8 is respected.
 
 \item Rule 9.4, which requires that array elements or structure attributes must
 be initialised at most once, is automatically met because Scala already ensures
-this behaviour by initialising any object exactly once and because \GenC map
+this behaviour by initialising any object exactly once and because \GenC maps
 one-to-one an object initialisation.
 
-\item As mentioned in \RefSec{normalisation} \GenC ensures the evaluation model
-of Scala is respected by the generated code. This model is strict enough to
-determine a specific order of expression evaluation, such as evaluating function
-arguments or operands from left to right. The C standard however leaves many
-details up to the C implementation. For that reason, Rule 13.2 wants that all
-possible evaluation orders result in the same side-effects. It therefore follows
-that by enforcing a unique evaluation order the generated code abides to that
-rule.
+\item As mentioned in \RefSec{normalisation} \GenC ensures the unambiguous
+evaluation model of Scala is respected by the generated code. This model is
+strict enough to determine a specific order of expression evaluation, such as
+evaluating function arguments or operands from left to right. The C standard
+however leaves many details up to the C implementation. For that reason, Rule
+13.2 wants that all possible evaluation orders result in the same side-effects.
+It therefore follows that by enforcing a unique evaluation order the generated
+code abides to that rule.
 
 \item Because it is unsafe to keep using the address of an object after it is
 released, \GenC never returns from function a pointer to an object with automatic
@@ -2292,7 +2293,7 @@ aliasing is allowed, it is not possible to keep a reference to an object
 declared in an \InlineC{if}, \InlineC{while} or block expression beyond its
 scope. The logical conclusion is that the transpiled Scala code always follows
 Rule 18.6, which specifically requires that the address of an object $x$ with
-automatic storage is never stored in an second object $y$ outliving $x$.
+automatic storage is never stored in a second object $y$ outliving $x$.
 
 \item When using \InlineC{#include} directives, \GenC exclusively uses the
 \InlineC{<filename>} notation with headers from the Standard C Library, de facto
@@ -2318,7 +2319,7 @@ shift expressions, respecting instructions of Rule 10.1.
 \subsection{Deviations from the Guidelines}
 \label{unmet_rules}
 
-\GenC do not abide to 5 rules from the MISRA Guidelines: 2 \emph{readability}
+\GenC does not abide to 5 rules from the MISRA Guidelines: 2 \emph{readability}
 rules, 2 \emph{advisory} rules and 1 \emph{required} rule. We detail here the
 reasons why we either ignore or deviate from these and why it does not impact
 the safety of the software.
@@ -2379,7 +2380,7 @@ we strongly believe to be safe C programs.
 C99 standard defines the type of a string literal as \InlineC{char [N]}, with
 \InlineC{N} being the size of the string plus one to accommodate for the
 implicit sentinel character, which decays to \InlineC{char*}. It also
-clearly specifies that mutating such an array results in undefined-behaviour but
+clearly specifies that mutating such an array results in undefined-behaviour. But
 it remains that \InlineC{char*} is a valid type to represent string literals. On
 the other, because \GenC does not yet provide support for string manipulation,
 it is impossible to execute illegal instructions related to string literals,
@@ -2414,19 +2415,19 @@ generated code uses identifiers close to the input program one can easily link
 documentation for a produced C function, type or variable back to the original
 function, type or variable.
 
-\item Directive 4.7 mandates that error information retuned from function should
+\item Directive 4.7 mandates that error information retuned from functions should
 be tested. To that end we highly recommend users to use, for example, the monadic
-\InlineS{Option} class to represent the absence of results as one has to test
+\InlineS{Option} class to represent the absence of result because one has to test
 the type of the returned instance, using pattern matching for example, to
-extract results and therefore make testing for errors unavoidable.
+extract result and therefore make error checking unavoidable.
 
-\item Rule 17.7 asks that every value returned by a function should be used,
-except for the \InlineS{Unit} value, of course.
+\item Rule 17.7 asks that every value returned by a function should be used.
+This applies to Scala as well, except for the \InlineS{Unit} value, of course.
 
 \item Rules 2.1 and 2.2 demand that the source code should not contain
 unreachable or dead code. The distinction between the two is that, in MISRA
 terminology, dead code is code that can be executed but does not affect the
-outcome of the program while unreachable code is code that is never reached,
+outcome of the program while unreachable code is code that is never reached
 under any input. \GenC is designed to not add such undesirable instructions but
 cannot remove such code. Moreover, we highlight the fact that such constructs
 can be the symptoms of design issues or bugs.
@@ -2437,14 +2438,14 @@ space shortage and therefore is unsafe. We discuss this particular issue in
 \RefSec{function}.
 
 \item Rule 18.8 strongly suggests avoiding using \emph{Variable Length Array}
-(VLA). \GenC allows the user to have VLA but will warn the user. The user must
+(VLA). \GenC allows such constructs but will emit a warning. The user must
 ensure that the runtime size of such array is strictly positive to avoid
 undefined-behaviour.
 
-\item Rules 13.1 and 13.5 both require the code to avoid side-effect in specific
+\item Rules 13.1 and 13.5 both require to avoid side-effect in specific
 contexts; the former when initialising objects or arrays, the latter in operands
 of the logical \InlineC{&&} and \InlineC{||} operators. By extension to Scala we
-recommend users to avoid side effect in any operator operands and function
+recommend users to avoid side effect in any operands and function
 arguments, although the generated code ensures through normalisation that such
 instructions have the same behaviour in C.
 
@@ -2464,10 +2465,11 @@ reusing the same identifier for two different types. Since C99 does not support
 function overloading, it could be argued that this rule also applies to
 functions. Even though the generated code is technically free of such issue due
 to the disambiguating used postfixes, we recommend users to follow this
-guideline in their Scala code for readability purposes
+guideline in their Scala code for readability purposes.
 
 \item Rule 22.3 asks that no file should be read and written at the same time
-through different streams. The provided I/O API cannot prevent this.
+through different streams. The provided I/O API unfortunately cannot prevent
+this.
 
 \item Rule 21.6 explains why one should not use features from the C Standard
 Library I/O framework. We let the user determine whether this restriction
@@ -2491,8 +2493,8 @@ automatically\footnote{This happens in Leon when extracting the AST using
 2147483647 + 1} are translated into \InlineC{int32_t x = -2147483648;}.
 
 \item Rule 15.7 requires every \InlineC{if ... else if} constructs to followed
-by a final \InlineC{else} expression, possibly only consisting in a comment
-explaining why no code is executed in this final branch. Scala do force
+by a final \InlineC{else} expression, possibly only consisting of a comment
+explaining why no code is executed in this final branch. Scala forces
 \InlineS{if} statements to have a final \InlineS{else} branch but only when they
 are used to "return" a value. In other words, examples such as the following one
 are valid code but do not respect this rule.
@@ -2564,7 +2566,7 @@ comment on the speeds of the encoding \& decoding processes.
 \subsection{The LZW Algorithm}
 
 In LZW a coding table, or \emph{dictionary}, representing a mapping between
-known pattern and codewords is constructed on the fly as the data to encode or
+known patterns and codewords is constructed on the fly as the data to encode or
 decode is read. The way this dictionary is built requires that the encoder and
 decoder only share one information beforehand: the supported and ordered input
 alphabet. It allows the decoder to reform the original data without being
@@ -2572,7 +2574,7 @@ provided with the full encoding dictionary.
 
 In this report we discuss one of the simplest versions published in the 80's
 which was used in several tools. Improved versions are still used in, for
-example, the GIF format. Compared to other compression algorithm its compression
+example, the GIF format. Compared to other compression algorithms its compression
 ratio makes it really attractive while keeping a relatively simple structure.
 
 The compression, decompression and helper procedures for the algorithm are
@@ -2659,12 +2661,12 @@ new one is needed.
 \subsection{Implementation: String Representation}
 
 Since no heap allocation is allowed we encoded strings using a fixed-length
-buffer of characters, represented by the class \InlineS{Buffer} which is
+buffer of characters, represented by the \InlineS{Buffer} class which is
 sketched in the following listing. We also require that all buffer instances
-have a \InlineS{capacity} of \InlineS{BufferSize}, which is a global parameter
-of the program, by means of verification conditions that is proven to be
-correct. This requirement is helpful to simplify reasoning about
-\InlineS{Buffer}. The actual implementation, which is available in
+have a \InlineS{capacity} of \InlineS{BufferSize}, which is a global compile
+time parameter of the program, that is proven to be correct by means of
+verification conditions. This requirement is helpful to simplify reasoning
+about \InlineS{Buffer}. The actual implementation, which is available in
 \RefApp{LZW_code}, has additional methods that are only relevant for the
 implementation details of the algorithm.
 
@@ -2731,20 +2733,21 @@ As shown above, the first implementation of the dictionary is based on an
 \InlineS{Array[Buffer]}: the values (string buffers) are simply the values
 stored in the array while the keys (codewords) are the indexes. This array is
 encapsulated in a \InlineS{Dictionary} case class, which also keeps track of the
-next free place in the array. Because indexes are used to represent 16-bit
-codewords the underlying array cannot contain more than $2^{16}$ elements or
-some indexes could not be represented as codewords without being ambiguous.
+next free spot in the array. Because indexes are used to represent 16-bit
+codewords the underlying array cannot contain more than $2^{16}$ elements;
+otherwise some indexes could not be represented as codewords without being
+ambiguous.
 
 When using the dictionary to encode data the algorithm needs to find out whether
-the current candidate string (\Inline{wc} in the pseudo-code above) is in the
-dictionary. To do that, the dictionary array is traversed from its first element
-to its last used element in sequential order. Because codeword-string pairs do
-not need to be removed from the dictionary in LZW all valid buffers are stored
-to be contiguous in the array. It follows that the complexity for looking up the
-potential codeword, or its absence, for a given string is $\BigO{n \times
-\mbox{\InlineS{BufferSize}}}$ where $n$ is the size of the dictionary and
-\InlineS{BufferSize} takes into account the complexity of comparing two string
-buffers.
+the current candidate string (\Inline{wc} in the pseudo-code in
+\RefCode{lst:lzwalgo}) is in the dictionary. To do that, the dictionary array is
+traversed from its first element to its last used element in sequential order.
+Because codeword-string pairs do not need to be removed from the dictionary in
+LZW all valid buffers are stored contiguously in the array. It follows that the
+complexity for looking up a codeword, or its absence, for a given string is
+$\BigO{n \times \mbox{\InlineS{BufferSize}}}$ where $n$ is the size of the
+dictionary and \InlineS{BufferSize} takes into account the complexity of
+comparing two string buffers.
 
 While this runtime complexity is not optimal, given a codeword as in the
 decoding procedure we can get the corresponding string in $\BigO{1}$ using a
@@ -2825,7 +2828,7 @@ that grows fast with the size of arrays: it creates significantly large programs
 in terms of line of code. Moreover, \GenC can be noticeably slow to generate
 such programs, the compile time, especially with optimisation enabled, takes a
 considerable amount of time and the generated assembly code will be predictably
-huge.
+large.
 
 \subsubsection*{Dictionary Design B: Custom \& Compact Memory Layout}
 
@@ -2837,15 +2840,15 @@ case class Dictionary(
 ) { /* ... */ }
 \end{ShortCode}
 
-With the second design of \InlineS{Dictionary} we try to address the two issues
-related to the size of the generated code. It is also an attempt at squeeze more
+With our second design of \InlineS{Dictionary} we try to address the two issues
+related to the size of the generated code. It is also an attempt at squeezing more
 strings into the same amount of memory.
 
 By analysing statistics of memory usage of the previous implementation, we
 notice that the vast majority of string buffers were not using their full
 capacity at all; instead most of them are short. For example, all the codewords
-for the initial alphabet are associated with strings for length one, effectively
-wasting \InlineS{BufferSize - 1} bytes of memory.
+for the initial alphabet are associated with strings of length one, effectively
+wasting \InlineS{BufferSize - 1} bytes of memory per string.
 
 Consequently, we represented a \InlineS{Dictionary} storage using a raw memory
 region \InlineS{memory}, allocated on the stack using an \InlineS{Array[Byte]},
@@ -2904,21 +2907,23 @@ The first remark we can make about this experiment is that \GenC is mature
 enough to transpile a Scala implementation of the famous LZW algorithm. It is
 true that when dealing with some forms of array the generated code can be large
 and therefore slow to produce and compile, but we also showed how to avoid this
-issue at the cost of scarifying the \emph{Don't Repeat Yourself} (DRY) idiom. By
-customising the implementation of \InlineS{Dictionary} as we have shown with the
-\textbf{Design B} that we were also able to reduce the memory footprint of the
+issue at the cost of sacrificing the \emph{Don't Repeat Yourself} (DRY) idiom.
+By customising the implementation of \InlineS{Dictionary} as we have shown with
+the \textbf{Design~B} we were also able to reduce the memory footprint of the
 program at runtime and the size of the binary produced by Clang, as reported in
-\RefTable{tab:LZW}.
+\RefTable{tab:LZW}. Furthermore, this second design is capable of producing
+smaller encoded output. However, to fairly compare the speed of both designs we
+set up our benchmark to use the same maximal number of codewords and therefore
+produce the same encoded data.
 
-\pagebreak[4]
-We used commands similar to the following to transpile the LZW implementations,
-compile them using the Clang C compiler and execute them:
+We used commands similar to the following ones to transpile the LZW
+implementations, compile them using the Clang C compiler and execute them:
 
 \begin{labeling}{Transpiling}
 
 \item[Transpiling] \Inline{time leon --genc testcases/genc/LZWa.scala --o=LZWa.c}
-\item[Compiling] \Inline{time clang LZWa.c -o LZWa -O3 -std=c99 -DNDEBUG}
-\item[Running] \Inline{time -l ./LZWa}
+\item[Compiling] \Inline{time clang LZWa.c -o LZWa -O3 --std=c99 -DNDEBUG}
+\item[Running] \Inline{time -v ./LZWa}
 
 \end{labeling}
 
@@ -2938,10 +2943,10 @@ stored in the dictionary having a length of 65. We used for \textbf{Design A} a
 i.e. \InlineS{DictionarySize * BufferSize}.
 
 These results show that \textbf{Design A} is about 6.5 times slower to transpile
-compared to \textbf{Design B}, with a C99 code close to 200 times bigger in
+compared to \textbf{Design B}, with a C99 code close to 200 times larger in
 size. Not surprisingly, compiling the first implementation using most of Clang
 optimisations is significantly slower than its alternative implementation, with
-a binary size $\sim$100 times bigger. However, contrary to the intuition that
+a binary size $\sim$100 times larger. However, contrary to the intuition that
 less assembly instructions is better for speed, the initial version is 40\%
 faster, using the wall clock to measure time, than the second one when both are
 tasked to compress the same file with the same maximum number of codewords to
@@ -2987,48 +2992,52 @@ compilation options \Inline{-O3 -std=c99 -fno-omit-frame-pointer -g -DNDEBUG
 
 \begin{enumerate}
 
-\item The decoding process, regardless of the implementations, only accounts for
-less than 1\% of the total runtime. This is obviously because looking up
-codewords in the \InlineS{Dictionary} is $\BigO{1}$ and therefore very
-efficient.
+\item The decoding process, regardless of the implementation designs, only
+accounts for less than 1\% of the total runtime. This is obviously because
+looking up codewords in the \InlineS{Dictionary} is $\BigO{1}$ and therefore
+very efficient.
 
 \item In both cases, 50\% or more of the time is spent comparing string buffers.
-As previously noted, looking up for string in the dictionary is $\BigO{n \times
-BufferSize}$, where $n$ is the size of the dictionary, and this is the
-bottleneck of the algorithm. It therefore would be wise to use a different data
-structure, for example based on hash functions, to represent the dictionary and
-improve the runtime performance of the programs.
+As previously noted, looking up strings in the dictionary is $\BigO{n \times
+\mbox{\InlineS{BufferSize}}}$, where $n$ is the size of the dictionary, and this
+is the bottleneck of the algorithm. It therefore would be wise to use a
+different data structure, for example based on hash functions, to represent the
+dictionary and improve the runtime performance of the programs. However, this
+was not the point of this benchmark.
 
 \end{enumerate}
 
 Finally, because the Scala code used to implement both designs is valid, we are
 able to run both versions on the JVM. The compilation process lasted for about
 15 seconds for both programs, but their running time were 160s and 200s,
-respectively. Contrary to the C equivalent code, these programs run all
-assertions at runtime and both spend more than 50s in kernel functions, as
-reported by \Inline{time} and use much more memory. The main bottleneck of the
-Scala programs is the implementation of the I/O API introduced in
+respectively. Contrary to the equivalent C code, these programs run all
+assertions at runtime and both spend more than 50s in kernel functions and use
+much more memory, as reported by \Inline{time}. The main bottleneck of the Scala
+programs is the implementation of the I/O API introduced in
 \RefSec{io_framework}: Leon is currently not capable of reasoning about Java
-types and for this reason, using the Java I/O API is possible exclusively in
+types and, for this reason, using the Java I/O API is possible exclusively in
 function annotated with \InlineS{@extern}. The direct consequence of this is
 that I/O streams need to be open and close for each individual I/O operation
-available through Lion's I/O framework.
+available through Leon's I/O framework.
 
 That being said, it is straightforward to provide an efficient implementation of
 the same API for runtime purposes using \InlineS{BufferedInputStream} and
 \InlineS{BufferedOutputStream} of the \InlineS{java.io} package. Furthermore, we
-removed verification conditions, such as \InlineS{require} or
-\InlineS{invariant}, in order to have a fair comparison of runtime performances
-between the JVM and C backends. These changes resulted in runtimes are around
-12s and 10s on the JVM, respectively for the \textbf{Designs A \& B}, of user
-time as reported by the \Inline{time} utility.
+removed verification conditions, such as \InlineS{require}, \InlineS{ensuring},
+\InlineS{assert} or \InlineS{invariant}, in order to have a fair comparison of
+the runtime performances between the JVM and C backends. These changes resulted
+in runtimes around 12s and 10s on the JVM, respectively for the \textbf{Designs
+A \& B}, of user time as reported by the \Inline{time} utility.
 
 Hence, using \GenC, the speedups are of roughly 2.6x and 1.3x compared to
 \emph{single shot executions} of the original Scala programs, i.e. without
 specifically giving the JVM the chance to warm up. It was also observed that
 using GCC 5.4 instead of Clang 3.8, with the same compilation options, resulted
 in faster programs, with speedups of 2.6x and 1.8x, respectively.
-\RefFig{fig:lzw-res} reports these results.
+\RefFig{fig:lzw-res} reports these results: the left y-axis, which origin is at
+the bottom of the chart, presents the speedup factors according to the
+\emph{jvm\_no\_vc} baseline and the right y-axis, which starts at the top of the
+graph, reports the absolute runtime measurements in seconds.
 
 Memory-wise the JVM programs consume about 86MB and 147MB of RAM and their
 executions is interrupted by thousands of involuntary context switches. Again,
@@ -3049,23 +3058,26 @@ consuming a handful megabytes.
 
 To further illustrate what \GenC is capable of, we present in this section a
 case study on image processing. In this example, we first load some image stored
-in a file, then apply some filter and finally save the modified image back in a
-new file. We discuss next mainly how the image data is safely read from and
+in a file, then apply some filter and finally save the modified image back into
+a new file. We discuss next mainly how the image data is safely read from and
 saved to the filesystem, and present the main algorithm used by this case study.
-We however do not discuss performance metrics of the implementation as most of
-the execution time is spent in I/O operations.
+We conclude this section with a discussion about performance by comparing
+runtimes across several backends.
 
 \subsection{Safely Acquiring Image Data}
 
 For this experiment, we implemented a minimalistic parser for bitmap files
 (BMP). Because the goal is not to support all variations of BMP files, our
-software exclusively works on 24-bit image stored without compression that are
-exempt of custom palette. Additionally, due to the constraint of static memory
-allocation, we explicitly limit the size of images to a compile time constant.
-For our experiment we set this parameter to constraint images to a maximum of
-512 by 512 pixels. However, one could support images of arbitrarily large size
-by processing images chunk by chunk, thanks to the nature of the image
-processing used here.
+software exclusively works on 24-bit images stored without compression that
+refer to the default palette. We provide two slightly different versions for
+this case study. The first limits image size to a compile time constant. It
+could be modified to process images of arbitrary sizes by processing them chunk
+by chunk thanks to the nature of the image processing algorithm used here.
+Therefore processing a limited set of images should not be interpreted as a hard
+limit of the memory model used by \GenC. The second version is provided for
+benchmarking purposes and relies on VLA, despite being discouraged by the MISRA
+guidelines: it allows us, within the environment used for the benchmark, to
+measure computational speed without including I/Os.
 
 In order to write safe programs, especially those using I/O operations, one need
 to track down potential errors. At this stage of the project, exception are not
@@ -3073,8 +3085,8 @@ supported by \GenC. The remaining alternative is to work with error code. To do
 this in a type safe manner we define an enumeration of \InlineS{Status}, such as
 \InlineS{Success}, \InlineS{OpenError}, \InlineS{CorruptedDataError} and so on.
 \GenC appropriately converts this set of values into a C \InlineC{enum},
-therefore converting the class hierarchy in Scala to a lightweight value
-representation in native C code.
+therefore converting the class hierarchy expressed in Scala into a lightweight
+value representation in native C code.
 
 \begin{Code}{Leon}{lst:outParams}{Thin wrapper for \emph{out}-parameters.}
 abstract class Status
@@ -3096,11 +3108,10 @@ However, returning a \InlineS{Status} from a function typically means that an
 \emph{out}-parameter is required. To propagate side-effect one can rely on a
 thin wrapper, such as \InlineS{Out[A]} in \RefCode{lst:outParams}. But this
 technique generally leads to verbose programs and has the downside to require a
-default initialisation of variable, often with random values. For example,
-a call site to function \InlineS{foo} of \RefCode{lst:outParams} would look like
-this:
+default initialisation of variables, often with random values. For example, a
+call site to function \InlineS{foo} defined in \RefCode{lst:outParams} would
+look like this:
 
-\pagebreak
 \begin{ShortCode}{Leon}
 val outParamInt = Out(0)
 val outParamSwitch = Out(Switch(false))
@@ -3109,14 +3120,14 @@ val status = foo(outParamInt, outParamSwitch)
 
 Here, the choice of \InlineS{0} and \InlineS{false} to initialise the
 \emph{out}-parameters is purely arbitrary. It can also be argued that for some
-more complex type, it is not trivial to provide a default value. Regardless of
+more complex types, it is not trivial to provide a default value. Regardless of
 those issues, \GenC supports \InlineS{Out}-parameters.
 
 Alternatively, the \InlineS{foo} function can be modified to return a
 \InlineS{(Success, Int, Switch)}. This, of course, moves the burden of default
 initialisation to \InlineS{foo} itself instead of call sites. But in both case,
 one has to remember to check the returned \InlineS{Status} before using the
-\emph{out}-parameters (or the other member of the tuple).
+\emph{out}-parameters (or the other members of the tuple).
 
 Contrary to C, in Scala we can leverage the type system to ensure that
 \emph{out}-parameters are only used when the returned \InlineS{Status} is a
@@ -3133,21 +3144,21 @@ case class Failure[A](status: Status) extends MaybeResult[A] {
 \end{ShortCode}
 
 With \InlineS{MaybeResult}, the \InlineS{foo} function can be rewritten to
-return a \InlineS{MabyeResult[(Int, Switch)]} and therefore no longer require to
-arbitrarily construct some value in case of failure. At call sites, one can rely
-on pattern matching to extract the result, if the call was successful. This
-technique has the additional benefit to increase compliance with Directive 4.7
-of the MISRA Guidelines, which requires that error information returned from
-function should be tested.
+return a \InlineS{MabyeResult[(Int, Switch)]} and therefore no longer requires
+to arbitrarily construct values based on arbitrary parameters in case of
+failure. At call sites, one can rely on pattern matching to extract the result,
+if the call was successful. This technique has the additional benefit to
+increase compliance with Directive 4.7 of the MISRA Guidelines, which requires
+that error information returned from function should be tested.
 
-In combination with \InlineS{leon.lang.Option}, \InlineS{MabyeResult} were used
+In combination with \InlineS{leon.lang.Option}, \InlineS{MabyeResult} was used
 in this case study to improve the safety of the programs: for every cast or
-pattern matching, Leon detects potential misuses of the language that can result
+pattern matching Leon detects potential misuses of the language that can result
 in runtime errors or missing branches.
 
-One important fact about BMP format is that integers are stored in little endian
-format. This means that when loading a \emph{WORD}, for example, the two bytes
-used to represent the 16-bit unsigned integer have to be ``swapped'' using
+One important fact about the BMP format is that integers are stored in little
+endian format. This means that when loading a \emph{WORD}, for example, the two
+bytes used to represent the 16-bit unsigned integer have to be ``swapped'' using
 bitwise operations. Moreover, since Scala only exposes signed integer types,
 \emph{WORDs} have to be represented using \InlineS{Int}s. Therefore, to
 translate a 16-bit unsigned integer into one using two's complement
@@ -3211,19 +3222,18 @@ private def destructWord(word: Int): (Byte, Byte) = {
 }
 \end{Code}
 
-\pagebreak
 Finally, after parsing the bitmap header data to identify where the image data
 starts in the file, loading the pixels is fairly easy: the RGB components of
-each pixel are simply interleaved so that a usual \InlineS{while} loop is enough
+each pixel are simply interleaved so that a simple \InlineS{while} loop is enough
 to read them one after the other. Furthermore, saving the modified image back to
 the disk involves no special computation: it suffices to check that all output
 operations have succeeded.
 
 \subsection{Image Manipulation Using Kernels}
 
-The image processing part of this case study involves a usual matrix convolution
-approach: a \emph{kernel}, which represent the filter to be applied, is
-implemented as a 2D matrix of integers and a scaling factor. In our
+The image processing part of this case study involves a traditional matrix
+convolution approach: a \emph{kernel}, which represent the filter to be applied,
+is implemented as a 2D matrix of integers and a scaling factor. In our
 implementation, the matrix is stored into a 1D array and can be constructed as
 follows:
 \begin{ShortCode}{Leon}
@@ -3237,8 +3247,8 @@ val kernel = Kernel(size = 5, scale = 8, Array(
 ))
 \end{ShortCode}
 
-In other words, a given pixel will be modulated according to its neighbouring
-and the kernel matrix, which represents the weight of each pixels in the vicinity
+In other words, a given pixel will be modulated according to its neighbourhood
+and the kernel matrix, which represents the weight of each pixel in the vicinity
 of the source pixel. By changing only the kernel, one can produce various
 effects. \RefFig{fig:kernels} shows three examples, all of which were generated
 using the C code produced by \GenC for this case study.
@@ -3362,23 +3372,26 @@ case class Kernel(size: Int, scale: Int, kernel: Array[Int]) {
 \lstset{numbers=none}
 
 \subsection{Runtime Performances}
+\label{improc_bench_res}
 
-For this benchmark we compared exclusively the computational runtime of the
+For this benchmark we compared exclusively the computational time of the
 application, without taking into account the input and output processing times,
 using several runtime environments. First, as a baseline, we ran the original
-Scala source code on a JVM. Then, we used Leon and \GenC to convert it into C
-code and generated two native versions using both Clang and GCC compilers, at
-the \Inline{-O3} optimisation levels. In order to allow the JVM to perform
+Scala source code on a JVM as well as a modified version trimmed of runtime
+assertions. Then, we used Leon and \GenC to convert it into C code and generated
+two native versions using both Clang and GCC compilers. We furthermore compared
+compared the performances of \emph{Scala Native} \cite{scala_native} after
+slightly adapting the source code. In order to allow the JVM to perform
 optimisation at runtime, each measurement was performed 50 times to let the JIT
 compiler kick in. However, we did not attempt to optimise the benchmark and
 exclude measures impacted by the garbage collector because we strongly believe
 it is part of the language environment and therefore should be accounted for.
 
-To carry out this experiment, we set up a small API for benchmarks with an equivalent
-implementation for C and Scala: it allows to measure in milliseconds the elapsed
-time between two arbitrary points of a program. Given an source image, we
-measured the time needed to allocate the memory for the output image and apply a
-given kernel on the input image.
+To carry out this experiment, we set up a small API for benchmarks with an
+equivalent implementation for C and Scala: it allows us to measure in
+milliseconds the elapsed time between two arbitrary points of a program. Given
+a source image, we measured the time needed to allocate the memory for the
+output image and apply a given kernel on the input image.
 
 The benchmark was run on kernels and images of different sizes. To accommodate
 for large images we used \emph{Variable Length Arrays}, despite being not
@@ -3386,16 +3399,14 @@ recommended by the MISRA guidelines, and increased the maximal stack size of our
 Linux system using \Inline{ulimit}. The set of images ranges from very small,
 200x200 pixels images to large ones with more than 22 megapixels. We used three
 sizes of kernels: 1x1, 3x3 and 5x5 matrices. \RefTable{tab:improc_params}
-reports these details.
+reports these parameters in details.
 
 
 \begin{table}[h]
 \centering
-\caption{Properties of input images and kernels.}
-\label{tab:improc_params}
 \begin{tabular}{@{}lll|l|ll@{}}
 \toprule
-Image         & Pixels    & Size   &  & Kernels  & Matrix \\ \midrule
+Image         & Pixels    & Size   &  & Kernel   & Matrix \\ \midrule
 input3.bmp    & 200x200   & 117 KB &  & identity & 1x1    \\
 input6.bmp    & 250x184   & 136 KB &  & smooth   & 3x3    \\
 input4.bmp    & 220x334   & 216 KB &  & emboss   & 3x3    \\
@@ -3405,9 +3416,10 @@ input5.bmp    & 512x384   & 577 KB &  & sharpen  & 5x5    \\
 input7.bmp    & 1350x900  & 3.5 MB &  &          &        \\
 input7big.bmp & 6000x4000 & 69 MB  &  &          &        \\ \bottomrule
 \end{tabular}
+\caption{Properties of input images and kernels.}
+\label{tab:improc_params}
 \end{table}
 
-\pagebreak
 We used the following environment for this benchmark:
 \begin{itemize}
 \item Linux 4.8.0-42-generic x86\_64;
@@ -3420,36 +3432,36 @@ We used the following environment for this benchmark:
 \item gcc version 5.4.0 20160609 (Ubuntu 5.4.0-6ubuntu1\~{}16.04.4);
 \end{itemize}
 
-We present in \RefFig{fig:improc-res} a subset of the results that highlights
-the general trends of the measurements. In these results, we use the Scala
+We present in \RefFig{fig:improc-res} a subset of the results that highlight
+the general trend of the measurements. In these results, we use as baseline the Scala
 runtime where verification conditions were removed from the code, denoted by
-\emph{jvm\_no\_vc}, as a baseline. The data series named \emph{jvm\_vc} indicate
-the runtime cost of verification conditions that Leon could prove to be correct
+\emph{jvm\_no\_vc}. The data series named \emph{jvm\_vc} indicate
+the runtime cost of verification conditions, which Leon could prove to be correct
 at compile time. The \emph{clang.3} and \emph{gcc.3} series denote the
 performance of the generated C99 code compiled at the \Inline{-O3} optimisation
 level by Clang and GCC, respectively. Finally, the \emph{native} series showcase
-the performance of \emph{Scala Native} \cite{scala_native}.
+the performance of \emph{Scala Native}.
 
 In the first and second columns of the chart, we show the runtimes and speedups
 for the second smallest and the largest image inputs, respectively, using
 boxplots: the red lines identify the median runtime for each combination of
-parameters. In the third column, we plotted the speedups across inputs, where
+parameters. In the third column are plotted the speedups across inputs, where
 the smallest input image is on the left of the x-axis and the largest on the
-right. For each row of the figure, we present the result for a different
+right. For each row of the figure, we present the results  for a different
 kernel. The first row shows the outcomes for the smallest filter, i.e. a 1x1
 matrix, while the second and third rows present the results for a 3x3 and 5x5
 kernel matrix, respectively.
 
 From this data, we note a few things. First, the performance penalty to check at
 runtime for errors accounts for a slowdown ranging from 4x to 10x. Thanks to
-Leon, this is not an issue here: we can statically check that the verification
+Leon, this is not an issue here: we can statically check whether the verification
 conditions present in the source code are valid or not. Hence, we can remove
-such assertions from the executed program once we are satisfied with the quality
+such assertions from the executable program once we are satisfied with the quality
 of the proofs used by Leon.
 
 Then, for small inputs, such as the one presented in the first column of
 \RefFig{fig:improc-res}, the generated C99 code offers relatively similar
-performance as the JVM runtime denoted by \emph{jvm\_no\_vc}: all programs lasts
+performance to the JVM runtime denoted by \emph{jvm\_no\_vc}: all programs last
 for very few milliseconds. With a much bigger input, such as the one used in the
 second column of the chart, using Clang to compile the C99 code results in a
 slight slowdown, but with a much smaller memory footprint. However, when using
@@ -3465,7 +3477,7 @@ precise enough to provide accurate results.
 
 Additionally, when exploring the runtime data we saw that the JIT compiler did
 not improve the performance of the JVM backend significantly throughout the
-runs, the first and last runs taking approximately the same time. The variance
+runs: the first and last runs taking approximately the same time. The variance
 in the runtimes is therefore probably due to the garbage collector doing its
 work.
 
@@ -3477,14 +3489,18 @@ the standard C library, which resulted in a implementation close to identical as
 the one produced by \GenC. Second, in order to use a stack allocated memory, we
 replaced the \InlineS{Array[Byte]} by \InlineS{native.Ptr[Byte]} and explicitly
 allocated the image data using \InlineS{native.stackalloc[Byte](size)} function.
-Further, we also removed the verification conditions so that the runtime
+Furthermore, we also removed the verification conditions so that the runtime
 performances reported by \emph{native} in \RefFig{fig:improc-res} are comparable
-to the \emph{jvm\_no\_vc}, \emph{clang.3} and \emph{gcc.3} series.
+to the \emph{jvm\_no\_vc}, \emph{clang.3} and \emph{gcc.3} series. Specifically,
+to compare this version of the benchmark against \emph{clang.3} and
+\emph{gcc.3}, we turned off the garbage collector and configured the project to
+use \emph{release} mode in order to allow \emph{Link Time Optimisations} (LTO).
 
-However, and this can be explained by the experimental nature of version 0.1 of
-\emph{Scala Native}, this additional backend was slower than the C code
+However -- and this can be explained by the experimental nature of version
+0.2\footnote{Version 0.2 was not yet released when running this benchmark.} of
+\emph{Scala Native} -- this additional backend was slower than the C code
 generated by \GenC and compiled by GCC or Clang, and slower than the JVM runtime
-by a factor 2x. It is expected that the runtime performance of \emph{Scala
+by a factor of 2x. It is expected that the runtime performance of \emph{Scala
 Native} will be significantly improved in upcoming updates and it would
 therefore be relevant to run measurements for this benchmark again.
 
@@ -3494,7 +3510,7 @@ using Clang we observed similar performance as running the original Scala
 program on the JVM, but when using GCC the performances were boosted and offered
 speedups between 1.2x and 1.5x. It follows that using Leon to verify the safety
 of software does not implies slow runtimes. Moreover, with \GenC we add the
-ability to target hardware not supported by the JVM.
+ability to target hardware potentially not supported by the JVM.
 
 
 \begin{figure}[!h]
@@ -3522,10 +3538,11 @@ detect unexpected behaviour in arithmetic expressions. Additionally, we
 introduced an Input/Output API for standard streams and files, with a backend
 for C99.
 
-After carefully analysis the requirement imposed by the \emph{xlang} module
-regarding aliasing we devised a stack-allocation based memory model, free of
+After a carefully analysis of the requirement imposed by the \emph{xlang} module
+regarding aliasing we devised a memory model based on stack allocation, free of
 dynamic allocation, that is capable of handling most form of mutability in class
-hierarchies, and therefore imposes no requirement on heap memory management.
+hierarchies, and therefore imposes no requirement on heap memory management,
+such as having a Garbage Collector.
 
 Not only did we introduce support for \Inline{Byte} and other primitive types,
 but we managed to transpile generic types and functions into C code without
@@ -3542,31 +3559,30 @@ some dangerous pitfalls by converting values from one to another type.
 Furthermore, support for casts and membership tests within class hierarchies
 were added as well as the ability to convert pattern matching expressions into
 equivalent, imperative code. And in order to use stable and trusted C libraries
-we designed an annotation systems to create proxy interface, providing a bridge
+we designed an annotation system to create proxy interfaces, providing a bridge
 between Scala and C code.
 
 One central aspect of this report is that we documented how \GenC is capable of
 respecting, with very few exceptions, the strict MISRA Guidelines for critical
 and embedded systems development, exposing when the verification tools of Leon
-can be extremely beneficial and what the user is required to do to work his way
-through full compliance.
+can be extremely beneficial and what the user is required to do to work their
+way through full compliance.
 
 We ended the discussion by using the LZW data compression and decompression
-algorithm and an algorithm to apply filters on images, illustrating how
-successfully \GenC can perform on real-life programs, although identifying some
-limitations with nested arrays that are the consequences of our memory model.
-Performance-wise, we showed that using Clang or GCC to compile the code
-generated by Leon and \GenC, especially when using the compilers' clever
-optimisation strategies, result in runtime up to 2.5x faster compared to the
-usual JVM runtime offered by Scala, when runtime assertions are removed, while
-being as safe as the source programs. Without Leon's ability to prove the
-correctness of our benchmark at compile time, the runtime assertions hinder
-performance by a factor reaching 10x when compared to the runtime of the
-generated C99 code that is exempts of such costly checks.
+algorithm and an image processing algorithm using matrices, illustrating how
+successfully \GenC can perform on real-life programs. Performance-wise, we
+showed that using Clang or GCC to compile the code generated by Leon and \GenC,
+especially when using the compilers' clever optimisation strategies, result in
+runtimes up to 2.5x faster compared to the usual JVM execution times offered by
+Scala when runtime assertions are removed, while being as safe as the source
+programs. Without Leon's ability to prove the correctness of our benchmark at
+compile time, the runtime assertions hinder performances by a factor exceeding
+10x when compared to the computational speed of the generated C99 code that is
+exempt of such costly checks.
 
 Hence, we showed that one can write safe, efficient programs written in Scala
-using Leon for verification purposes and its \GenC module to generate equivalent
-C99 programs.
+using Leon for verification purposes and its \GenC module to generate
+equivalent, fast and portable C99 programs.
 
 
 \section{Future Works}
@@ -3590,16 +3606,17 @@ Performance benefit from such optimisations are however hard to estimate because
 nowadays C compilers do already perform some aggressive optimisations when asked
 to.
 
-\item Resource inference introduced by Orb \cite{Madhavan2014} to deal more
-efficiently with imperative programs, giving developers a good analysis of the
-memory requirement for their generated C99 programs, but also in term of speed
-were an accurate execution model be elaborated for a given hardware system.
+\item Improving resource inference introduced by Orb \cite{Madhavan2014} to deal
+more efficiently with imperative programs, giving developers a good analysis of
+the memory requirements for their generated C99 programs, but also in term of
+speed were an accurate execution model be elaborated for a given hardware
+system.
 
 \item Adding an extra layer to the I/O library component of Leon to
-automatically close file handle when they go out of scope. This could be
+automatically close file handles when they go out of scope. This could be
 implemented with an inlined and curried function, similar to the one exposed
-below, fundamentally using the same trick than for \InlineS{Option} discussed in
-\RefSec{library}.
+below, fundamentally using the same trick as for \InlineS{Option} discussed in
+\RefSec{library}:
 
 \begin{ShortCode}{Leon}
 @inline
@@ -3615,15 +3632,12 @@ def withFile(filename: String)
 \end{ShortCode}
 
 Alternatively, two callback functions could be passed to \InlineS{withFile} and
-a generic return type could be inferred from them. But in any case the passed
-functions could only be anonymous lambdas as higher order functions remains a
-complex concept when expressed in C, especially while maintaining the semantics
-of Scala.
+a generic return type could be inferred from them.
 
-\item With upcoming updates to the xlang module \cite{xlang}, the aliasing
-restrictions are expected to be slightly relaxed, essentially allowing a
-variable, or one of its member, to be aliased by another if only one of them is
-used subsequently.
+\item With upcoming updates to the \emph{xlang} module \cite{xlang}, the
+aliasing restrictions are expected to be slightly relaxed, essentially allowing
+a variable to be aliased by a new one only if exclusively the new one is
+subsequently used.
 
 \begin{ShortCode}{Leon}
 def foo(x: MutableType) = {
@@ -3637,22 +3651,20 @@ Such modification of the anti-aliasing rules would require a reassessment of how
 sound.
 
 \item The memory model presented in \RefSec{memory_model} is known to suffer
-from one flaw illustrated in \RefCode{lst:validXlang}. Two opposite updates are
-interesting at this point. The first would be to notify the user when \GenC
-detects code that it cannot properly handle, possibly stopping the translation
-process.
+from one flaw illustrated in \RefCode{lst:validXlang}. Currently, \GenC
+gracefully rejects such programs, but the alternative would be to considerably
+change the ownership model used by \GenC to represent types in two fashions:
+\emph{owner} and \emph{reference}. The former would have exclusively value
+attributes and own them. The latter would be bound to an \emph{owner} and have
+references for its mutable fields. Additionally, we should be able to convert an
+\emph{owner} to a \emph{reference} but not vice-versa. This framework would
+allow passing mutable tuples or case classes to functions while respecting
+aliasing (and therefore propagate side-effects) with the constraint that
+functions can only return the \emph{owner} variant of a type.
 
-The other alternative would be to considerably change the ownership model used
-by \GenC to represent types in two fashions: \emph{owner} and \emph{reference}.
-The former would have exclusively value attributes and own them. The latter
-would be bound to an \emph{owner} and have references for its mutable fields.
-Additionally, we should be able to convert an \emph{owner} to a \emph{reference}
-but not vice-versa. This framework allows passing mutable tuples or case classes
-to functions and respect aliasing (and therefore propagates mutation) when
-functions can return only the \emph{owner} variant of a type.
-
-Applied to \RefCode{lst:validXlang}, instead of producing \RefCode{lst:badcopy}
-\GenC could generate a program along these lines:
+Applied to the Scala program displayed in \RefCode{lst:validXlang}, instead of
+producing \RefCode{lst:badcopy} \GenC could generate a program along these
+lines:
 
 \begin{ShortCode}{C99}
 typedef struct { int x; } A;
@@ -3665,23 +3677,23 @@ static void update(A* a) {
 }
 \end{ShortCode}
 
-Such modification of the type translation and representation however would
-require a full analysis, assessing notably if the augmentation of types and type
-conversions impacts the generated C99 code in an undesirable way. Moreover, the
-impact of the relaxed aliasing rules described above should be taken into
-account when solving this limitation.
+Such modifications of the type translation and representation system would,
+however, require a full analysis, notably assessing if the augmentation of types
+and type conversions impact the generated C99 code in an undesirable way.
+Moreover, the impact of the relaxed aliasing rules described above should be
+taken into account when solving this limitation.
 
-\item In order to make the process to have MISRA compliant C code developers
-using \GenC need to pay attention to several points discussed in
-\RefSec{user_responsibility}. Documenting and keeping track of how each point is
-taken care of is obviously a tedious task when done solely manually. However,
-for several points Leon and \GenC could emit warnings and instruct users how to
-solve specific issues. We list here several points of interest for a linter-like
+\item Developers using \GenC need to pay attention to the key points discussed
+in \RefSec{user_responsibility} in order to certify their project under the
+MISRA guidelines. Documenting and keeping track of how each point is taken care
+of is obviously a tedious task when done solely manually. However, for several
+points Leon and \GenC could emit warnings and instruct users how to solve
+specific issues. We list here several points of interest for a linter-like
 report:
 
   \begin{enumerate}
 
-  \item Directive 4.7 and Rule 17.7 both ask that value returned by function
+  \item Directive 4.7 and Rule 17.7 both ask that values returned by function
   should be used~-- the former specifically address error values signalled by
   functions. Automatically reporting when a value is not read should be possible
   locally to each function body.
@@ -3689,16 +3701,17 @@ report:
   \item Identifying systematically unreachable or dead code would directly help
   fulfilling Rules 2.1 and 2.2.
 
-  \item Side effect present when initialising arrays, objects or in operands
-  would make it trivial to check for compliance to Rules 13.1 and 13.5.
+  \item Detecting that no side-effect occur when initialising arrays, objects or
+  in operands would make it trivial to check for compliance to Rules 13.1 and
+  13.5.
 
   \item Similarly, the benefits of reporting places in the user code where an
   identifier shadows another one are twofold: it would make Rules 5.2, 5.3 and
   5.7 obsolete and this would allow \GenC to avoid using complex postfixes on
-  identifiers in many places, consequently making the generated C code looking
-  more similar to the original Scala code.
+  identifiers in many places, and consequently making the generated C code
+  looking more similar to the original Scala code.
 
-  \item Using simple checks on the AST Leon and \GenC could determine whether
+  \item Using simple checks on the AST, Leon and \GenC could determine whether
   all \InlineS{if} statements have an \InlineS{else} branch in order to satisfy
   Rule 15.7. Similarly, when multiple \InlineC{return} expressions are inserted
   by \GenC a warning could be emitted for Rule 15.5.
@@ -3723,22 +3736,22 @@ report:
 \setlength{\leftmargini}{1em}
 
 Here we briefly present an analysis of the different arithmetic operators
-present in Java and C, highlighting the differences of semantics and behaviour
-as well as identifying the legal range of values.
+present in Java/Scala and C, highlighting the differences of semantics and behaviour
+as well as identifying the legal ranges of values.
 
-The first column determines whether the C99 operator presented in the second one
-takes one argument (\emph{unary}) or two arguments (\emph{binary}). The
+The first column indicates whether the C99 operator presented in the second
+column takes one argument (\emph{unary}) or two arguments (\emph{binary}). The
 arguments are denoted by \emph{rhs} and \emph{lhs}, which stand for right- and
 left-hand side. The seventh column contains the closest Java operator. The valid
-range of values is detailed in columns four and five for the C99 standard and in
-columns nine and ten for the Java environment. We refer in columns three and
-eight to which sections of the C Standard \cite{c99} and Java Standard
+range of values is detailed in the fourth and fifth columns for the C99 standard
+and in the ninth and tenth ones for the Java environment. We refer in the third
+and eighth columns which sections of the C Standard \cite{c99} and Java Standard
 \cite{java8}, respectively, define the exact semantic of the operators.
 
 Then we highlight in the last column the main differences between the C and Java
-operators. And finally, in the sixth column we use four symbols that specify
-under which condition the C99 and Java semantics of the operator are equivalent.
-Their respective meaning is as follows when the operations are carried out on
+operators. And finally, in the sixth column we use four symbols to specify under
+which conditions the C99 and Java operator semantics are equivalent.  Their
+respective meaning is as follows, assuming the operations are carried out on
 32-bit integers:
 
 \newcommand{\SemEqual}{\checkmark}
@@ -3746,12 +3759,12 @@ Their respective meaning is as follows when the operations are carried out on
 \newcommand{\SemStrict}{$\mathcal{S}$}%\textdagger
 \newcommand{\SemNA}{\ding{53}}
 
-\begin{description}[style=nextline]
+\begin{description}%[style=nextline]
 \item[\SemEqual] The two semantics are completely equivalent.
 \item[\SemOverflow] The semantics are equivalent when no overflow occur.
 \item[\SemStrict] Under \Inline{--strict-arithmetic} verification mode the two
 are identical.
-\item[\SemNA] There is no direct equivalence between the operator.
+\item[\SemNA] There is no direct equivalence between the operators.
 \end{description}
 
 \clearpage
@@ -3815,8 +3828,8 @@ $[0, 2^{31}-1]$; otherwise the behaviour is undefined.
 binary & unsigned \Inline{<<} & 6.5.7 & any unsigned int & $[0,31]$ & \SemStrict & \Inline{<<} & 15.19 & any int & any int &
 \vspace{-1.5ex}
 \begin{itemize}[nosep]
-\item Assuming rhs is in $[0,31]$, the unsigned version of << in C99 is equivalent to Java's.
-\item However, converting back from unsigned integer is implementation defined!
+\item Assuming rhs is in $[0,31]$, the unsigned version of \Inline{<<} in C99 is equivalent to Java's.
+\item However, converting back from unsigned integer is implementation defined.
 \end{itemize} \\
 
 binary & signed \Inline{>>} & 6.5.7 & any non-negative int & $[0,31]$ & \SemNA & \Inline{>>} or \Inline{>>>}\footnotemark & 15.19 & any int & any int &
